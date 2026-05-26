@@ -2,9 +2,9 @@ from services.parser import parse_file
 from services.normalizer import normalize_products
 from services.analyzer import generate_sales_summary
 from services.validator import validate_columns
+from services.task_store import TASK_RESULTS
 
-
-def process_uploaded_file(file):
+def process_uploaded_file(task_id, file):
 
     df = parse_file(file)
 
@@ -14,4 +14,7 @@ def process_uploaded_file(file):
 
     summary = generate_sales_summary(df)
 
-    return summary
+    TASK_RESULTS[task_id] = {
+        "status": "completed",
+        "summary": summary
+    }

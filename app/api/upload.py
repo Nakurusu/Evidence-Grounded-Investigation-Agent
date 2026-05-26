@@ -1,7 +1,7 @@
-from fastapi import APIRouter, UploadFile
+from fastapi import APIRouter, UploadFile, BackgroundTasks
 from services.pipeline import process_uploaded_file
-import uuid
 from services.task_store import TASK_RESULTS
+import uuid
 
 router = APIRouter(
     prefix="/upload",
@@ -9,14 +9,24 @@ router = APIRouter(
 )
 
 @router.post("/")
-async def upload(file: UploadFile):
+async def upload(
+    background_tasks: BackgroundTasks, 
+    file: UploadFile
+):
 
     task_id = str(uuid.uuid4())
 
-    result = process_uploaded_file(file)
+    TASK_RESULTS[task_id] = {
+        "status": "processing"
+    }
 
-    TASK_RESULTS[task_id] = result
+    background_tasks.add_task(
+        process_uploaded_file, 
+        task_id,
+        file
+        )
 
     return {
-        "task_id": task_id
+        "task_id": task_id,
+        "status": "processing"
     }
