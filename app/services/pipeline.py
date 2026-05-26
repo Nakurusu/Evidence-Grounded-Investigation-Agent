@@ -5,16 +5,22 @@ from services.validator import validate_columns
 from services.task_store import TASK_RESULTS
 
 def process_uploaded_file(task_id, file):
+    try:
+        df = parse_file(file)
 
-    df = parse_file(file)
+        validate_columns(df)
 
-    validate_columns(df)
+        df = normalize_products(df)
 
-    df = normalize_products(df)
+        summary = generate_sales_summary(df)
 
-    summary = generate_sales_summary(df)
+        TASK_RESULTS[task_id] = {
+            "status": "completed",
+            "summary": summary
+        }
+    except Exception as e:
 
-    TASK_RESULTS[task_id] = {
-        "status": "completed",
-        "summary": summary
-    }
+        TASK_RESULTS[task_id] = {
+            "status": "failed",
+            "message": str(e)
+        }
