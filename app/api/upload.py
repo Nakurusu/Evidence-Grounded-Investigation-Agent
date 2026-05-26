@@ -1,22 +1,22 @@
 from fastapi import APIRouter, UploadFile
-from services.parser import parse_file
-from services.normalizer import normalize_products
-from services.analyzer import generate_sales_summary
-from services.validator import validate_columns
+from services.pipeline import process_uploaded_file
+import uuid
+from services.task_store import TASK_RESULTS
 
-router = APIRouter()
+router = APIRouter(
+    prefix="/upload",
+    tags=["upload"]
+)
 
-@router.post("/upload")
+@router.post("/")
 async def upload(file: UploadFile):
 
-    df = parse_file(file)
-    
-    validate_columns(df)
+    task_id = str(uuid.uuid4())
 
-    df = normalize_products(df)
+    result = process_uploaded_file(file)
 
-    summary = generate_sales_summary(df)
+    TASK_RESULTS[task_id] = result
 
     return {
-        "summary": summary
+        "task_id": task_id
     }
