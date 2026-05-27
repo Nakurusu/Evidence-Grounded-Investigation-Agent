@@ -1,12 +1,8 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
+from core.settings import settings
 
-DATABASE_URL = (
-    "postgresql+psycopg://"
-    "appuser:password@localhost:5432/appdb"
-)
-
-engine = create_engine(DATABASE_URL)
+engine = create_engine(settings.DATABASE_URL)
 
 SessionLocal = sessionmaker(bind=engine)
 

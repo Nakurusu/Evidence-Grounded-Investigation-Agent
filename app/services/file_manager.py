@@ -1,7 +1,8 @@
 from pathlib import Path
 import shutil
+from core.settings import settings
 
-UPLOAD_DIR = Path("uploads")
+UPLOAD_DIR = Path(settings.UPLOAD_DIR)
 
 UPLOAD_DIR.mkdir(exist_ok=True)
 
