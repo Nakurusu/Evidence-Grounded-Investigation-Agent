@@ -1,7 +1,9 @@
-from fastapi import APIRouter, UploadFile, BackgroundTasks
+from fastapi import APIRouter, UploadFile, BackgroundTasks, Depends
 from services.pipeline import process_uploaded_file
-from services.task_store import TASK_RESULTS
 from services.file_manager import save_uploaded_file
+from sqlalchemy.orm import Session
+from db.dependencies import get_db
+from models.task import Task
 import uuid
 from datetime import datetime, UTC
 
@@ -13,20 +15,22 @@ router = APIRouter(
 @router.post("/")
 async def upload(
     background_tasks: BackgroundTasks, 
-    file: UploadFile
+    file: UploadFile,
+    db: Session = Depends(get_db)
 ):
 
     task_id = str(uuid.uuid4())
 
-    TASK_RESULTS[task_id] = {
-        "task_id": task_id,
-        "status": "processing",
-        "filename": file.filename,
-        "created_at": datetime.now(UTC).isoformat(),
-        "finished_at": None,
-        "result": None,
-        "error": None
-    }
+    
+    task = Task(
+        id=task_id,
+        status="processing",
+        filename=file.filename,
+        created_at=datetime.now(UTC)
+    )
+
+    db.add(task)
+    db.commit()
 
     file_path = save_uploaded_file(
         file, 
