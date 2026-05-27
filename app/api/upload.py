@@ -6,6 +6,7 @@ from db.dependencies import get_db
 from models.task import Task
 import uuid
 from datetime import datetime, UTC
+from core.logger import logger
 
 router = APIRouter(
     prefix="/upload",
@@ -18,19 +19,22 @@ async def upload(
     file: UploadFile,
     db: Session = Depends(get_db)
 ):
+    logger.info(
+        f"received upload: {file.filename}"
+    )
 
     task_id = str(uuid.uuid4())
-
-    
     task = Task(
         id=task_id,
         status="processing",
         filename=file.filename,
         created_at=datetime.now(UTC)
     )
-
     db.add(task)
     db.commit()
+    logger.info(
+        f"created task: {task_id}"
+)
 
     file_path = save_uploaded_file(
         file, 
