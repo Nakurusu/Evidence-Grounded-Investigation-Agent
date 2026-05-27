@@ -2,13 +2,17 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from db.dependencies import get_db
 from models.task import Task
+from schemas.task import TaskResponse
 
 router = APIRouter(
     prefix="/task",
     tags=["task"]
 )
 
-@router.get("/{task_id}")
+@router.get(
+        "/{task_id}"
+        ,response_model=TaskResponse
+        )
 async def get_task(
     task_id: str,
     db: Session = Depends(get_db)
@@ -21,12 +25,4 @@ async def get_task(
             detail="Task not found"
         )
 
-    return {
-        "id": str(task.id),
-        "status": task.status,
-        "filename": task.filename,
-        "created_at": task.created_at,
-        "finished_at": task.finished_at,
-        "result": task.result,
-        "error": task.error
-    }
+    return task
