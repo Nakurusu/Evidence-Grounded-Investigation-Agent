@@ -1,6 +1,6 @@
 from sqlalchemy import Column, String, DateTime, Text
 from sqlalchemy.dialects.postgresql import UUID, JSONB
-from db.database import Base
+from app.db.database import Base
 
 class Task(Base):
 

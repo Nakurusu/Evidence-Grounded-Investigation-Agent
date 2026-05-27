@@ -1,6 +1,6 @@
 from pathlib import Path
 import shutil
-from core.settings import settings
+from app.core.settings import settings
 
 UPLOAD_DIR = Path(settings.UPLOAD_DIR)
 

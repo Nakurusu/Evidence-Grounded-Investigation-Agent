@@ -1,11 +1,11 @@
-from services.parser import parse_file
-from services.normalizer import normalize_products
-from services.analyzer import generate_sales_summary
-from services.validator import validate_columns
+from app.services.parser import parse_file
+from app.services.normalizer import normalize_products
+from app.services.analyzer import generate_sales_summary
+from app.services.validator import validate_columns
 from datetime import datetime, UTC
-from db.database import SessionLocal
-from models.task import Task
-from core.logger import logger
+from app.db.database import SessionLocal
+from app.models.task import Task
+from app.core.logger import logger
 def process_uploaded_file(task_id, file):
 
     db = SessionLocal()

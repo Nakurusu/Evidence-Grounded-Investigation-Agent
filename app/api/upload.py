@@ -1,12 +1,12 @@
 from fastapi import APIRouter, UploadFile, BackgroundTasks, Depends
-from services.pipeline import process_uploaded_file
-from services.file_manager import save_uploaded_file
+from app.services.pipeline import process_uploaded_file
+from app.services.file_manager import save_uploaded_file
 from sqlalchemy.orm import Session
-from db.dependencies import get_db
-from models.task import Task
+from app.db.dependencies import get_db
+from app.models.task import Task
 import uuid
 from datetime import datetime, UTC
-from core.logger import logger
+from app.core.logger import logger
 
 router = APIRouter(
     prefix="/upload",

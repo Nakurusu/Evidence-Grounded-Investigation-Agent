@@ -1,6 +1,6 @@
 from fastapi import FastAPI
-from api.upload import router as upload_router
-from api.task import router as task_router
+from app.api.upload import router as upload_router
+from app.api.task import router as task_router
 
 app = FastAPI()
 
