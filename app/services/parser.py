@@ -1,12 +1,12 @@
 import pandas as pd
 
-def parse_file(file):
+def parse_file(file_path):
 
-    if file.filename.endswith(".csv"):
-        df = pd.read_csv(file.file)
+    if file_path.endswith(".csv"):
+        df = pd.read_csv(file_path)
 
-    elif file.filename.endswith(".xlsx"):
-        df = pd.read_excel(file.file)
+    elif file_path.endswith(".xlsx"):
+        df = pd.read_excel(file_path)
 
     else:
         raise ValueError("Unsupported file type")
