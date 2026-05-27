@@ -2,6 +2,7 @@ from fastapi import APIRouter, UploadFile, BackgroundTasks
 from services.pipeline import process_uploaded_file
 from services.task_store import TASK_RESULTS
 import uuid
+from datetime import datetime, UTC
 
 router = APIRouter(
     prefix="/upload",
@@ -17,7 +18,13 @@ async def upload(
     task_id = str(uuid.uuid4())
 
     TASK_RESULTS[task_id] = {
-        "status": "processing"
+        "task_id": task_id,
+        "status": "processing",
+        "filename": file.filename,
+        "created_at": datetime.now(UTC).isoformat(),
+        "finished_at": None,
+        "result": None,
+        "error": None
     }
 
     background_tasks.add_task(
