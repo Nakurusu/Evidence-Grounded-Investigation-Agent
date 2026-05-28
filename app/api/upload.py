@@ -7,6 +7,7 @@ from app.models.task import Task
 import uuid
 from datetime import datetime, UTC
 from app.core.logger import logger
+from app.models.enums import TaskStatus
 
 router = APIRouter(
     prefix="/upload",
@@ -26,7 +27,7 @@ async def upload(
     task_id = str(uuid.uuid4())
     task = Task(
         id=task_id,
-        status="processing",
+        status=TaskStatus.PENDING.value,
         filename=file.filename,
         created_at=datetime.now(UTC)
     )
@@ -49,5 +50,5 @@ async def upload(
 
     return {
         "task_id": task_id,
-        "status": "processing"
+        "status": TaskStatus.PENDING.value
     }

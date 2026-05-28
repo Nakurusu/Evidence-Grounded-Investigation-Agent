@@ -6,6 +6,8 @@ from datetime import datetime, UTC
 from app.db.database import SessionLocal
 from app.models.task import Task
 from app.core.logger import logger
+from app.models.enums import TaskStatus
+
 def process_uploaded_file(task_id, file):
 
     db = SessionLocal()
@@ -15,6 +17,7 @@ def process_uploaded_file(task_id, file):
         logger.info(
             f"processing task {task_id}"
         )
+        task.status = TaskStatus.PROCESSING.value
         df = parse_file(file)
         logger.info(
             f"parsed file for task {task_id}"
@@ -25,7 +28,7 @@ def process_uploaded_file(task_id, file):
         logger.info(
             f"completed task {task_id}"
         )
-        task.status = "completed"
+        task.status = TaskStatus.COMPLETED.value
         task.result = summary
         task.finished_at = datetime.now(UTC)
         db.commit()
@@ -35,7 +38,7 @@ def process_uploaded_file(task_id, file):
         logger.exception(
             f"task failed: {task_id}"
         )
-        task.status = "failed"
+        task.status = TaskStatus.FAILED.value
         task.error = str(e)
         task.finished_at = datetime.now(UTC)
         db.commit()
