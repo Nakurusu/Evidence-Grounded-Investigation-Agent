@@ -14,4 +14,4 @@ class TaskResponse(BaseModel):
     created_at: datetime
     finished_at: datetime | None
     result: dict | None
-    error: str | None
+    error_message: str | None = None

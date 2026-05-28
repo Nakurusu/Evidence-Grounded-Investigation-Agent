@@ -2,6 +2,7 @@ from sqlalchemy import Column, String, DateTime, Text
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from app.db.database import Base
 from app.models.enums import TaskStatus
+from sqlalchemy import Text
 
 class Task(Base):
     __tablename__ = "tasks"
@@ -11,4 +12,4 @@ class Task(Base):
     created_at = Column(DateTime(timezone=True), nullable=False)
     finished_at = Column(DateTime(timezone=True))
     result = Column(JSONB)
-    error = Column(Text)
+    error_message = Column(Text, nullable=True)

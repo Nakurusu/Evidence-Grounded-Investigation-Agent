@@ -39,7 +39,7 @@ def process_uploaded_file(task_id, file):
             f"task failed: {task_id}"
         )
         task.status = TaskStatus.FAILED.value
-        task.error = str(e)
+        task.error_message = str(e)
         task.finished_at = datetime.now(UTC)
         db.commit()
         db.close()
