@@ -3,6 +3,14 @@ import pandas as pd
 from app.schemas.profile import DatasetProfile, ColumnProfile
 from app.models.enums import ColumnType
 
+IDENTIFIER_KEYWORDS = {
+    "id",
+    "uuid",
+    "key",
+    "identifier",
+}
+
+
 def profile_dataframe(df: DataFrame) -> DatasetProfile:
     row_count = len(df)
     column_count = len(df.columns)
@@ -19,6 +27,7 @@ def profile_dataframe(df: DataFrame) -> DatasetProfile:
             ColumnProfile(
                 name=column,
                 dtype=infer_column_type(df[column]),
+                is_identifier=detect_identifiers(column, df[column]),
                 null_count=null_count,
                 null_percentage=null_percentage,
                 unique_count=unique_count
@@ -40,20 +49,22 @@ def infer_column_type(series) -> ColumnType:
     series_non_null = series.dropna()
 
     if len(series_non_null) > 0:
-        sample = str(series_non_null.iloc[0])
-        if any(char.isdigit() for char in sample):
-            try:
-                pd.to_datetime(series_non_null, errors="raise")
-                return ColumnType.DATETIME
-            except Exception:
-                pass
+        try:
+            pd.to_datetime(series_non_null, errors="raise")
+            return ColumnType.DATETIME
+        except Exception:
+            pass
             
-    unique_ratio = (
-        series.nunique() / len(series)
-        if len(series) > 0
-        else 0
-    )
+    unique_ratio = unique_value_ratio(series)
     if unique_ratio < 0.5:
         return ColumnType.CATEGORICAL
     else:
         return ColumnType.TEXT
+    
+def unique_value_ratio(series) -> float:
+    non_null = series.dropna()
+    return non_null.nunique() / len(non_null) if len(non_null) > 0 else 0
+
+def detect_identifiers(column_name, series) -> bool:
+    unique_ratio = unique_value_ratio(series)
+    return (unique_ratio > 0.95 and any(keyword in column_name.lower() for keyword in IDENTIFIER_KEYWORDS))
