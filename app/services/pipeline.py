@@ -9,6 +9,7 @@ from app.core.logger import logger
 from app.models.enums import TaskStatus
 from app.services.profiler import profile_dataframe
 from app.services.quality import assess_data_quality
+from app.services.signal_detector import detect_signals
 
 def process_uploaded_file(task_id, file):
 
@@ -26,10 +27,16 @@ def process_uploaded_file(task_id, file):
         )
         df = normalize_dataframe(df)
         validate_dataframe(df)
+
         profile = profile_dataframe(df)
         logger.info(profile.model_dump())
+
         quality_report = assess_data_quality(df)
         logger.info(quality_report.model_dump())
+
+        signal_report = detect_signals(df, profile)
+        logger.info(signal_report.model_dump())
+
         summary = analyze_dataframe(df, profile)
         logger.info(
             f"completed task {task_id}"

@@ -35,9 +35,10 @@ Outputs:
 Goals:
 
 - Outlier detection
+- Identifier dection
 - Trend detection
-- Distribution analysis
 - Concentration analysis
+- Distribution analysis
 
 Outputs:
 
