@@ -1,17 +1,9 @@
-REQUIRED_COLUMNS = [
-    "product",
-    "sales"
-]
+from pandas import DataFrame
 
-def validate_columns(df):
 
-    missing_columns = []
+def validate_dataframe(df: DataFrame) -> None:
+    if df.empty:
+        raise ValueError("Dataset is empty")
 
-    for col in REQUIRED_COLUMNS:
-        if col not in df.columns:
-            missing_columns.append(col)
-
-    if missing_columns:
-        raise ValueError(
-            f"Missing columns: {missing_columns}"
-        )
+    if len(df.columns) == 0:
+        raise ValueError("Dataset has no columns")

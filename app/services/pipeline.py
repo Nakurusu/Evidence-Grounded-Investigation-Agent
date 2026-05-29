@@ -1,7 +1,7 @@
 from app.services.parser import parse_file
 from app.services.normalizer import normalize_products
 from app.services.analyzer import generate_sales_summary
-from app.services.validator import validate_columns
+from app.services.validator import validate_dataframe
 from datetime import datetime, UTC
 from app.db.database import SessionLocal
 from app.models.task import Task
@@ -25,7 +25,7 @@ def process_uploaded_file(task_id, file):
         )
         profile = profile_dataframe(df)
         logger.info(profile.model_dump())
-        validate_columns(df)
+        validate_dataframe(df)
         df = normalize_products(df)
         summary = generate_sales_summary(df)
         logger.info(
