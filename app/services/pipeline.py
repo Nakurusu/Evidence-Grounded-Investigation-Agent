@@ -7,6 +7,7 @@ from app.db.database import SessionLocal
 from app.models.task import Task
 from app.core.logger import logger
 from app.models.enums import TaskStatus
+from app.services.profiler import profile_dataframe
 
 def process_uploaded_file(task_id, file):
 
@@ -22,6 +23,8 @@ def process_uploaded_file(task_id, file):
         logger.info(
             f"parsed file for task {task_id}"
         )
+        profile = profile_dataframe(df)
+        logger.info(profile.model_dump())
         validate_columns(df)
         df = normalize_products(df)
         summary = generate_sales_summary(df)
