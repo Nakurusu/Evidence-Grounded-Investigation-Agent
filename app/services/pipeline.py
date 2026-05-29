@@ -1,6 +1,6 @@
 from app.services.parser import parse_file
 from app.services.normalizer import normalize_dataframe
-from app.services.analyzer import generate_sales_summary
+from app.services.analyzer import analyze_dataframe
 from app.services.validator import validate_dataframe
 from datetime import datetime, UTC
 from app.db.database import SessionLocal
@@ -30,7 +30,7 @@ def process_uploaded_file(task_id, file):
         logger.info(profile.model_dump())
         quality_report = assess_data_quality(df)
         logger.info(quality_report.model_dump())
-        summary = generate_sales_summary(df)
+        summary = analyze_dataframe(df, profile)
         logger.info(
             f"completed task {task_id}"
         )
