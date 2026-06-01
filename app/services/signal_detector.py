@@ -7,15 +7,17 @@ from app.models.enums import ColumnType
 
 def detect_signals( df: DataFrame, profile: DatasetProfile) -> SignalReport:
     signals = []
-    signals.extend(detect_missing_rate(df, profile))
-    signals.extend(detect_cardinality(df, profile))
+    signals.extend(detect_missing_rate(profile))
+    signals.extend(detect_cardinality(profile))
     signals.extend(detect_outliers(df, profile))
     signals.extend(detect_trends(df, profile))
+    signals.extend(detect_concentration(df, profile))
+    signals.extend(detect_distribution(df, profile))
 
     return SignalReport(signals=signals)
 
 
-def detect_missing_rate(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
+def detect_missing_rate(profile: DatasetProfile) -> list[Signal]:
     signals = []
     for column in profile.columns:
         if column.null_percentage > 20:
@@ -33,7 +35,7 @@ def detect_missing_rate(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
             )
     return signals
 
-def detect_cardinality(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
+def detect_cardinality(profile: DatasetProfile) -> list[Signal]:
     signals = []
     for column in profile.columns:
         if (
@@ -64,7 +66,7 @@ def detect_outliers(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
         if column.dtype != ColumnType.NUMERIC:
             continue
         series = df[column.name].dropna()
-        if len(series) < 4 :
+        if len(series) < 4:
             continue
 
         Q1 = series.quantile(0.25)
@@ -94,6 +96,7 @@ def detect_outliers(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
 
 
 def detect_trends(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
+    signals = []
     datetime_columns = [
         c.name for c in profile.columns if c.dtype == ColumnType.DATETIME
     ]
@@ -104,37 +107,139 @@ def detect_trends(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
         return []
     date_column = datetime_columns[0]
     df_sorted = df.sort_values(date_column)
-
-    series = df_sorted[numeric_columns[0]].dropna()
-    if len(series) < 2:
-        return []
-    first = series.iloc[0]
-    last = series.iloc[-1]
-    if last > first * 1.2:
-        return [
-            Signal(
-                type=SignalType.INCREASING_TREND,
-                severity=SignalSeverity.INFO,
-                    column=numeric_columns[0],
-                    # TODO:
-                    # Analyze all numeric columns
+    for numeric_column in numeric_columns:
+        series = df_sorted[numeric_column].dropna()
+        if len(series) < 2:
+            continue
+        first = series.iloc[0]
+        last = series.iloc[-1]
+        if last > first * 1.2:
+            signals.append(
+                Signal(
+                    type=SignalType.INCREASING_TREND,
+                    severity=SignalSeverity.INFO,
+                        column=numeric_column,
+                        message=(
+                            f"{numeric_column} shows an increasing trend "
+                            f"over time based on the first and last values"
+                        )
+                    )
+            )
+        elif last < first * 0.8:
+            signals.append(
+                Signal(
+                    type=SignalType.DECREASING_TREND,
+                    severity=SignalSeverity.INFO,
+                    column=numeric_column,
                     message=(
-                        f"{numeric_columns[0]} shows an increasing trend "
+                        f"{numeric_column} shows a decreasing trend "
                         f"over time based on the first and last values"
                     )
                 )
-            ]
-    elif last < first * 0.8:
-        return [
+            )
+    return signals
+
+    
+def detect_concentration(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
+    signals = []
+    categorical_columns = [
+        c.name for c in profile.columns if c.dtype == ColumnType.CATEGORICAL
+    ]
+    numeric_columns = [
+        c.name for c in profile.columns if c.dtype == ColumnType.NUMERIC
+    ]
+    if not categorical_columns or not numeric_columns:
+        return []
+    
+    categorical_column = categorical_columns[0]
+    numeric_column = numeric_columns[0]
+
+    grouped = df.groupby(categorical_column)[numeric_column].sum()
+    # TODO: Analyze all numeric columns
+    total = grouped.sum()
+
+    if total == 0:
+        return []
+    
+    top_share = grouped.max() / total
+    top_category = grouped.idxmax()
+
+    if top_share > 0.7:
+        signals.append(
             Signal(
-                type=SignalType.DECREASING_TREND,
-                severity=SignalSeverity.INFO,
-                column=numeric_columns[0],
+                type=SignalType.HIGH_CONCENTRATION,
+                severity=SignalSeverity.WARNING,
+                column=categorical_column,
                 message=(
-                    f"{numeric_columns[0]} shows a decreasing trend "
-                    f"over time based on the first and last values"
+                    f"{top_category} contributes "
+                    f"{top_share:.1%} of total {numeric_column}"
                 )
             )
-        ]
-    else:
+        )
+    return []
+
+def detect_distribution(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
+    signals = []
+    numeric_columns = [
+        c.name for c in profile.columns if c.dtype == ColumnType.NUMERIC
+    ]
+
+    if not numeric_columns:
         return []
+
+    for numeric_column in numeric_columns:
+        series = df[numeric_column].dropna()
+
+        if len(series) < 2:
+            continue
+
+        mean = series.mean()
+        median = series.median()
+
+        if mean > median * 1.2:
+            signals.append(
+                Signal(
+                    type=SignalType.RIGHT_SKEWED,
+                    severity=SignalSeverity.INFO,
+                    column=numeric_column,
+                    message=(
+                        f"{numeric_column} is right skewed with mean "
+                        f"{mean:.2f} and median {median:.2f}"
+                    )
+                )
+            )
+
+        if mean < median * 0.8:
+            signals.append(
+                Signal(
+                    type=SignalType.LEFT_SKEWED,
+                    severity=SignalSeverity.INFO,
+                    column=numeric_column,
+                    message=(
+                        f"{numeric_column} is left skewed with mean "
+                        f"{mean:.2f} and median {median:.2f}"
+                    )
+                )
+            )
+
+        std = series.std()
+
+        if mean == 0:
+            continue
+
+        coefficient_of_variation = std / abs(mean)
+
+        if coefficient_of_variation < 0.05:
+            signals.append(
+                Signal(
+                    type=SignalType.LOW_VARIANCE,
+                    severity=SignalSeverity.INFO,
+                    column=numeric_column,
+                    message=(
+                        f"{numeric_column} has low variance with "
+                        f"coefficient of variation {coefficient_of_variation:.2%}"
+                    )
+                )
+            )
+
+    return signals

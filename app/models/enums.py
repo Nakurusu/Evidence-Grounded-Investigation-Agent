@@ -20,7 +20,12 @@ class SignalType(str, Enum):
 
     INCREASING_TREND = "increasing_trend"
     DECREASING_TREND = "decreasing_trend"
-    
+
+    HIGH_CONCENTRATION = "high_concentration"
+
+    RIGHT_SKEWED = "right_skewed"
+    LEFT_SKEWED = "left_skewed"
+    LOW_VARIANCE = "low_variance"
 class SignalSeverity(str, Enum):
     INFO = "info"
     WARNING = "warning"
