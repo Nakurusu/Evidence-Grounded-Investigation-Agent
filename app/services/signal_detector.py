@@ -7,6 +7,16 @@ from app.models.enums import ColumnType
 
 def detect_signals( df: DataFrame, profile: DatasetProfile) -> SignalReport:
     signals = []
+    signals.extend(detect_missing_rate(df, profile))
+    signals.extend(detect_cardinality(df, profile))
+    signals.extend(detect_outliers(df, profile))
+    signals.extend(detect_trends(df, profile))
+
+    return SignalReport(signals=signals)
+
+
+def detect_missing_rate(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
+    signals = []
     for column in profile.columns:
         if column.null_percentage > 20:
             signals.append(
@@ -21,6 +31,11 @@ def detect_signals( df: DataFrame, profile: DatasetProfile) -> SignalReport:
                     )
                 )
             )
+    return signals
+
+def detect_cardinality(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
+    signals = []
+    for column in profile.columns:
         if (
             column.dtype in (
                 ColumnType.TEXT,
@@ -41,10 +56,15 @@ def detect_signals( df: DataFrame, profile: DatasetProfile) -> SignalReport:
                     )
                 )
             )
+    return signals
+
+def detect_outliers(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
+    signals = []
+    for column in profile.columns:
         if column.dtype != ColumnType.NUMERIC:
             continue
         series = df[column.name].dropna()
-        if len (series) < 4 :
+        if len(series) < 4 :
             continue
 
         Q1 = series.quantile(0.25)
@@ -70,6 +90,51 @@ def detect_signals( df: DataFrame, profile: DatasetProfile) -> SignalReport:
                     )
                 )
             )
-    return SignalReport(
-        signals=signals
-)
+    return signals
+
+
+def detect_trends(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
+    datetime_columns = [
+        c.name for c in profile.columns if c.dtype == ColumnType.DATETIME
+    ]
+    numeric_columns = [
+        c.name for c in profile.columns if c.dtype == ColumnType.NUMERIC
+    ]
+    if not datetime_columns or not numeric_columns:
+        return []
+    date_column = datetime_columns[0]
+    df_sorted = df.sort_values(date_column)
+
+    series = df_sorted[numeric_columns[0]].dropna()
+    if len(series) < 2:
+        return []
+    first = series.iloc[0]
+    last = series.iloc[-1]
+    if last > first * 1.2:
+        return [
+            Signal(
+                type=SignalType.INCREASING_TREND,
+                severity=SignalSeverity.INFO,
+                    column=numeric_columns[0],
+                    # TODO:
+                    # Analyze all numeric columns
+                    message=(
+                        f"{numeric_columns[0]} shows an increasing trend "
+                        f"over time based on the first and last values"
+                    )
+                )
+            ]
+    elif last < first * 0.8:
+        return [
+            Signal(
+                type=SignalType.DECREASING_TREND,
+                severity=SignalSeverity.INFO,
+                column=numeric_columns[0],
+                message=(
+                    f"{numeric_columns[0]} shows a decreasing trend "
+                    f"over time based on the first and last values"
+                )
+            )
+        ]
+    else:
+        return []

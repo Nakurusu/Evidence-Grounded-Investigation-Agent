@@ -18,6 +18,9 @@ class SignalType(str, Enum):
     HIGH_CARDINALITY = "high_cardinality"
     OUTLIER_DETECTED = "outlier_detected"
 
+    INCREASING_TREND = "increasing_trend"
+    DECREASING_TREND = "decreasing_trend"
+    
 class SignalSeverity(str, Enum):
     INFO = "info"
     WARNING = "warning"
