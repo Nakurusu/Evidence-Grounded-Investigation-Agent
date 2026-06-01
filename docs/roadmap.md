@@ -30,7 +30,7 @@ Outputs:
 
 ---
 
-## Phase 3 - Signal Detection
+## Phase 3 - Signal Detection ✅
 
 Goals:
 
