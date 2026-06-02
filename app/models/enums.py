@@ -26,7 +26,17 @@ class SignalType(str, Enum):
     RIGHT_SKEWED = "right_skewed"
     LEFT_SKEWED = "left_skewed"
     LOW_VARIANCE = "low_variance"
+
 class SignalSeverity(str, Enum):
     INFO = "info"
     WARNING = "warning"
     HIGH = "high"
+
+class QuestionCategory(str, Enum):
+    OBSERVATION = "observation"
+    VALIDATION = "validation"
+
+class QuestionPriority(str, Enum):
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
