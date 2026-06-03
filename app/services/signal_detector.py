@@ -20,6 +20,8 @@ def detect_signals( df: DataFrame, profile: DatasetProfile) -> SignalReport:
 def detect_missing_rate(profile: DatasetProfile) -> list[Signal]:
     signals = []
     for column in profile.columns:
+        if column.is_identifier:
+            continue
         if column.null_percentage > 20:
             signals.append(
                 Signal(
@@ -38,6 +40,8 @@ def detect_missing_rate(profile: DatasetProfile) -> list[Signal]:
 def detect_cardinality(profile: DatasetProfile) -> list[Signal]:
     signals = []
     for column in profile.columns:
+        if column.is_identifier:
+            continue
         if (
             column.dtype in (
                 ColumnType.TEXT,
@@ -63,6 +67,8 @@ def detect_cardinality(profile: DatasetProfile) -> list[Signal]:
 def detect_outliers(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
     signals = []
     for column in profile.columns:
+        if column.is_identifier:
+            continue
         if column.dtype != ColumnType.NUMERIC:
             continue
         series = df[column.name].dropna()
@@ -98,10 +104,10 @@ def detect_outliers(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
 def detect_trends(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
     signals = []
     datetime_columns = [
-        c.name for c in profile.columns if c.dtype == ColumnType.DATETIME
+        c.name for c in profile.columns if c.dtype == ColumnType.DATETIME and not c.is_identifier
     ]
     numeric_columns = [
-        c.name for c in profile.columns if c.dtype == ColumnType.NUMERIC
+        c.name for c in profile.columns if c.dtype == ColumnType.NUMERIC and not c.is_identifier
     ]
     if not datetime_columns or not numeric_columns:
         return []
@@ -118,12 +124,12 @@ def detect_trends(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
                 Signal(
                     type=SignalType.INCREASING_TREND,
                     severity=SignalSeverity.INFO,
-                        column=numeric_column,
-                        message=(
-                            f"{numeric_column} shows an increasing trend "
-                            f"over time based on the first and last values"
-                        )
+                    column=numeric_column,
+                    message=(
+                        f"Column '{numeric_column}' shows an increasing trend "
+                        f"over time based on the first and last values"
                     )
+                )
             )
         elif last < first * 0.8:
             signals.append(
@@ -132,7 +138,7 @@ def detect_trends(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
                     severity=SignalSeverity.INFO,
                     column=numeric_column,
                     message=(
-                        f"{numeric_column} shows a decreasing trend "
+                        f"Column '{numeric_column}' shows a decreasing trend "
                         f"over time based on the first and last values"
                     )
                 )
@@ -143,10 +149,10 @@ def detect_trends(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
 def detect_concentration(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
     signals = []
     categorical_columns = [
-        c.name for c in profile.columns if c.dtype == ColumnType.CATEGORICAL
+        c.name for c in profile.columns if c.dtype == ColumnType.CATEGORICAL and not c.is_identifier
     ]
     numeric_columns = [
-        c.name for c in profile.columns if c.dtype == ColumnType.NUMERIC
+        c.name for c in profile.columns if c.dtype == ColumnType.NUMERIC and not c.is_identifier
     ]
     if not categorical_columns or not numeric_columns:
         return []
@@ -171,17 +177,17 @@ def detect_concentration(df: DataFrame, profile: DatasetProfile) -> list[Signal]
                 severity=SignalSeverity.WARNING,
                 column=categorical_column,
                 message=(
-                    f"{top_category} contributes "
-                    f"{top_share:.1%} of total {numeric_column}"
+                    f"Category '{top_category}' in column '{categorical_column}' contributes "
+                    f"{top_share:.1%} of total '{numeric_column}'"
                 )
             )
         )
-    return []
+    return signals
 
 def detect_distribution(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
     signals = []
     numeric_columns = [
-        c.name for c in profile.columns if c.dtype == ColumnType.NUMERIC
+        c.name for c in profile.columns if c.dtype == ColumnType.NUMERIC and not c.is_identifier
     ]
 
     if not numeric_columns:
@@ -203,7 +209,7 @@ def detect_distribution(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
                     severity=SignalSeverity.INFO,
                     column=numeric_column,
                     message=(
-                        f"{numeric_column} is right skewed with mean "
+                        f"Column '{numeric_column}' is right skewed with mean "
                         f"{mean:.2f} and median {median:.2f}"
                     )
                 )
@@ -216,7 +222,7 @@ def detect_distribution(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
                     severity=SignalSeverity.INFO,
                     column=numeric_column,
                     message=(
-                        f"{numeric_column} is left skewed with mean "
+                        f"Column '{numeric_column}' is left skewed with mean "
                         f"{mean:.2f} and median {median:.2f}"
                     )
                 )
@@ -236,7 +242,7 @@ def detect_distribution(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
                     severity=SignalSeverity.INFO,
                     column=numeric_column,
                     message=(
-                        f"{numeric_column} has low variance with "
+                        f"Column '{numeric_column}' has low variance with "
                         f"coefficient of variation {coefficient_of_variation:.2%}"
                     )
                 )
