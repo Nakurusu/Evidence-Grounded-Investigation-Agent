@@ -149,7 +149,7 @@ def detect_trends(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
 def detect_concentration(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
     signals = []
     categorical_columns = [
-        c.name for c in profile.columns if c.dtype == ColumnType.CATEGORICAL and not c.is_identifier
+        c.name for c in profile.columns if c.dtype == (ColumnType.CATEGORICAL, ColumnType.TEXT) and not c.is_identifier
     ]
     numeric_columns = [
         c.name for c in profile.columns if c.dtype == ColumnType.NUMERIC and not c.is_identifier
@@ -157,31 +157,28 @@ def detect_concentration(df: DataFrame, profile: DatasetProfile) -> list[Signal]
     if not categorical_columns or not numeric_columns:
         return []
     
-    categorical_column = categorical_columns[0]
-    numeric_column = numeric_columns[0]
+    for categorical_column in categorical_columns:
+        for numeric_column in numeric_columns:
+            grouped = df.groupby(categorical_column)[numeric_column].sum()
+            total = grouped.sum()
+            if total == 0:
+                continue
+            
+            top_share = grouped.max() / total
+            top_category = grouped.idxmax()
 
-    grouped = df.groupby(categorical_column)[numeric_column].sum()
-    # TODO: Analyze all numeric columns
-    total = grouped.sum()
-
-    if total == 0:
-        return []
-    
-    top_share = grouped.max() / total
-    top_category = grouped.idxmax()
-
-    if top_share > 0.7:
-        signals.append(
-            Signal(
-                type=SignalType.HIGH_CONCENTRATION,
-                severity=SignalSeverity.WARNING,
-                column=categorical_column,
-                message=(
-                    f"Category '{top_category}' in column '{categorical_column}' contributes "
-                    f"{top_share:.1%} of total '{numeric_column}'"
+            if top_share > 0.7:
+                signals.append(
+                    Signal(
+                        type=SignalType.HIGH_CONCENTRATION,
+                        severity=SignalSeverity.WARNING,
+                        column=categorical_column,
+                        message=(
+                            f"Category '{top_category}' in column '{categorical_column}' contributes "
+                            f"{top_share:.1%} of total '{numeric_column}'"
+                        )
+                    )
                 )
-            )
-        )
     return signals
 
 def detect_distribution(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
