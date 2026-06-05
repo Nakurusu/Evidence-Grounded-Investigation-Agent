@@ -40,3 +40,8 @@ class QuestionPriority(str, Enum):
     HIGH = "high"
     MEDIUM = "medium"
     LOW = "low"
+    
+class HypothesisConfidence(str, Enum):
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"

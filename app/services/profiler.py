@@ -8,6 +8,11 @@ IDENTIFIER_KEYWORDS = {
     "uuid",
     "key",
     "identifier",
+    "name",
+    "email",
+    "phone",
+    "mobile",
+    "account"
 }
 
 
@@ -67,4 +72,4 @@ def unique_value_ratio(series) -> float:
 
 def detect_identifiers(column_name, series) -> bool:
     unique_ratio = unique_value_ratio(series)
-    return (unique_ratio > 0.95 and any(keyword in column_name.lower() for keyword in IDENTIFIER_KEYWORDS))
+    return unique_ratio > 0.95 and any(keyword in column_name.lower() for keyword in IDENTIFIER_KEYWORDS)
