@@ -20,7 +20,7 @@ What you get:
     1. Dataset Profile           — column types, nulls, cardinality
     2. Signals Detected          — outliers, trends, skew, concentration, etc.
     3. Investigation Report      — findings with evidence, business impact
-    4. AI Narrative (mock)       — structured natural-language summary
+    4. AI Narrative             — natural-language summary (mock or LLM)
     5. Interactive Investigation — follow-up questions, data gaps, next paths
 
 Output is printed as formatted text AND saved as JSON.
@@ -47,7 +47,7 @@ from app.services.evidence import generate_all_evidence
 from app.services.hypothesis_validator import validate_hypotheses
 from app.services.analyzer import analyze_dataframe
 from app.services.report_generator import generate_report
-from app.services.narrative_generator import MockNarrativeGenerator
+from app.services.narrative_generator import get_narrative_generator
 from app.services.interactive_investigator import InteractiveInvestigator
 from app.schemas.ai_report import AIInvestigationReport
 
@@ -175,9 +175,9 @@ def run(file_path: str):
         print(f"  Action:     {f.recommendation[:150]}")
 
     # ── Narrative (mock) ──────────────────────────────────────────────
-    gen = MockNarrativeGenerator()
+    gen = get_narrative_generator()
     narrative, metadata = gen.generate(report)
-    print_section("8. AI NARRATIVE (mock)")
+    print_section(f"8. AI NARRATIVE ({metadata.provider})")
     print(f"  Provider: {metadata.provider}  |  Model: {metadata.model_name}")
     print(f"  Prompt Version: {metadata.prompt_version}")
     print(f"\n  --- Executive Summary ---\n  {narrative.executive_summary[:300]}")

@@ -143,14 +143,25 @@ class TestMockNarrativeGenerator:
 
 
 class TestFactory:
-    def test_default_returns_mock(self):
-        gen = get_narrative_generator()
-        assert isinstance(gen, MockNarrativeGenerator)
-
-    def test_factory_returns_mock(self):
-        """Factory should return MockNarrativeGenerator with default settings."""
+    def test_factory_returns_valid_generator(self):
+        """Factory should return something that implements NarrativeGenerator."""
         gen = get_narrative_generator()
         assert gen is not None
-        # With default LLM_MODE="mock" or unset, returns MockNarrativeGenerator
+        # Duck-type check: must have a generate method
+        assert hasattr(gen, "generate")
         narrative, metadata = gen.generate(_minimal_report())
-        assert metadata.provider == "mock"
+        assert narrative.executive_summary
+        assert metadata.provider in ("mock", "openai")
+
+    def test_mock_mode_forced(self, monkeypatch):
+        """When LLM_MODE=mock, factory returns MockNarrativeGenerator."""
+        monkeypatch.setenv("LLM_MODE", "mock")
+        # Force re-import of settings so the env var takes effect
+        import app.core.settings as s
+        original = s.settings.LLM_MODE
+        s.settings.LLM_MODE = "mock"
+        try:
+            gen = get_narrative_generator()
+            assert isinstance(gen, MockNarrativeGenerator)
+        finally:
+            s.settings.LLM_MODE = original

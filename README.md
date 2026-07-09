@@ -36,6 +36,13 @@ python examples/run_investigation.py path/to/your_data.csv
 
 This runs the **full pipeline** (all 8 phases) without needing FastAPI, PostgreSQL, or any LLM API keys. A JSON report is saved alongside the input CSV.
 
+**Want to use a real LLM?**  Copy `.env.example` → `.env` and set your API key:
+
+```bash
+cp .env.example .env
+# Edit .env: LLM_MODE=openai, LLM_API_KEY=sk-xxx
+```
+
 ---
 
 ## Pipeline

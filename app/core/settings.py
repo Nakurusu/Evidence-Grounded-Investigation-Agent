@@ -10,10 +10,21 @@ class Settings(BaseSettings):
     """Provider mode for narrative generation.
 
     Supported values:
-    - "mock"       → MockNarrativeGenerator (deterministic, no API calls)
-    - "anthropic"  → (future) AnthropicNarrativeGenerator
-    - "openai"     → (future) OpenAINarrativeGenerator
+    - "mock"   → MockNarrativeGenerator (deterministic, no API calls)
+    - "openai" → LLMNarrativeGenerator (OpenAI-compatible API)
     """
+
+    LLM_API_KEY: str = ""
+    """API key for the LLM provider.  Required when LLM_MODE='openai'."""
+
+    LLM_BASE_URL: str = "https://api.openai.com/v1"
+    """Base URL for the OpenAI-compatible API endpoint.
+    Override to use other providers (e.g., 'https://api.anthropic.com/v1'
+    via a compatible proxy, or a local model endpoint)."""
+
+    LLM_MODEL: str = "gpt-4o"
+    """Model name passed to the API.  Any OpenAI-compatible model works:
+    gpt-4o, gpt-4o-mini, claude-sonnet-5 (via proxy), etc."""
 
     model_config = ConfigDict(
         env_file=".env"

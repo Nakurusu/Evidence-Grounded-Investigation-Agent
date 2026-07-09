@@ -183,9 +183,8 @@ def get_narrative_generator() -> NarrativeGenerator:
     """Return a NarrativeGenerator based on application settings.
 
     Reads LLM_MODE from settings:
-    - "mock" (or unset) → MockNarrativeGenerator
-    - "anthropic"      → (future) AnthropicNarrativeGenerator
-    - "openai"         → (future) OpenAINarrativeGenerator
+    - "mock" (or unset) → MockNarrativeGenerator (deterministic)
+    - "openai"          → LLMNarrativeGenerator (OpenAI-compatible API)
 
     Returns:
         A NarrativeGenerator implementation.
@@ -197,12 +196,21 @@ def get_narrative_generator() -> NarrativeGenerator:
     if mode == "mock":
         return MockNarrativeGenerator()
 
-    # Future providers go here:
-    # if mode == "anthropic":
-    #     return AnthropicNarrativeGenerator()
-    # if mode == "openai":
-    #     return OpenAINarrativeGenerator()
+    if mode == "openai":
+        api_key = getattr(settings, "LLM_API_KEY", "")
+        if not api_key:
+            raise ValueError(
+                "LLM_MODE='openai' requires LLM_API_KEY to be set "
+                "in .env or environment variables."
+            )
+        from app.services.llm_narrative_generator import LLMNarrativeGenerator
+
+        return LLMNarrativeGenerator(
+            api_key=api_key,
+            base_url=getattr(settings, "LLM_BASE_URL", "https://api.openai.com/v1"),
+            model=getattr(settings, "LLM_MODEL", "gpt-4o"),
+        )
 
     raise ValueError(
-        f"Unknown LLM_MODE '{mode}'.  Supported modes: mock"
+        f"Unknown LLM_MODE '{mode}'.  Supported modes: mock, openai"
     )
