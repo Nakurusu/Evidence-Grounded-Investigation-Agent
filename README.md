@@ -1,242 +1,205 @@
 # Investigative Data Analyst
 
-> An AI-powered investigation engine for structured business datasets.
-
-Investigative Data Analyst is an AI Agent designed to help users investigate business problems from structured datasets.
-
-Unlike traditional Business Intelligence (BI) dashboards or AutoEDA tools, this project focuses on **reasoning**, **evidence collection**, and **hypothesis validation**, guiding users through a structured investigation workflow instead of simply presenting descriptive statistics.
-
-The long-term goal is to build an AI analyst capable of discovering anomalies, asking meaningful questions, validating hypotheses with evidence, and producing explainable investigation reports.
+> An AI-powered investigation engine that transforms structured datasets into evidence-based insights — not another dashboard, not another AutoEDA tool.
 
 ---
 
-# Motivation
+## What It Does
 
-Most data analysis tools answer questions like:
+Drop in a CSV. Get back:
 
-- What happened?
-- How many?
-- Which category is the largest?
-
-Investigative Data Analyst aims to answer deeper questions such as:
-
-- Why did this happen?
-- What evidence supports this conclusion?
-- What should be investigated next?
-- Which hypotheses are most likely to explain the observed signals?
-
-The project combines deterministic statistical analysis with AI reasoning to simulate the workflow of an experienced business analyst.
+| Output | What It Tells You |
+|---|---|
+| **Signal Report** | What's interesting in the data? Outliers, trends, skew, concentration... |
+| **Investigation Questions** | What should you ask next based on those signals? |
+| **Hypotheses** | What might explain what you're seeing? |
+| **Evidence** | What statistical evidence supports or refutes each hypothesis? |
+| **Investigation Report** | Findings with business impact analysis and recommendations |
+| **AI Narrative** | Natural-language summary (mock or LLM-powered) |
+| **Interactive Investigation** | Follow-up questions, data gaps, step-by-step exploration paths |
 
 ---
 
-# Features
+## Quick Start (No Server, No API Keys)
 
-## Completed
+```bash
+pip install -r requirements.txt
 
-- Dataset profiling
-- Automatic column type inference
-- Identifier detection
-- Missing value analysis
-- Cardinality detection
-- Outlier detection
-- Trend detection
-- Distribution analysis
-- Concentration analysis
-- Investigation question generation
-- Hypothesis generation
-- Modular investigation pipeline
+# Run on a built-in demo scenario:
+python examples/run_investigation.py --demo sales       # revenue concentration + outliers
+python examples/run_investigation.py --demo churn       # missing data + declining spend
+python examples/run_investigation.py --demo operations  # low variance + sensor anomalies
 
-## In Progress
-
-- Evidence generation
-- Investigation report generation
-
-## Planned
-
-- LLM-powered investigation reports
-- Executive summaries
-- Interactive investigation workflow
-- Follow-up question generation
-- Multi-dataset analysis
-- Root-cause exploration
-- Investigation graph
-
----
-
-# Investigation Pipeline
-
-```text
-Dataset
-    ↓
-Dataset Profiling
-    ↓
-Signal Detection
-    ↓
-Question Generation
-    ↓
-Evidence Generation
-    ↓
-Hypothesis Validation
-    ↓
-Investigation Report
-    ↓
-LLM Narrative
-    ↓
-Interactive Investigation
+# Run on your own data:
+python examples/run_investigation.py path/to/your_data.csv
 ```
 
-Each stage transforms the output of the previous stage into a higher level of business understanding.
+This runs the **full pipeline** (all 8 phases) without needing FastAPI, PostgreSQL, or any LLM API keys. A JSON report is saved alongside the input CSV.
 
 ---
 
-# Project Structure
+## Pipeline
 
-```text
+```
+CSV / Excel
+    │
+    ▼
+┌──────────────────────────────────────────────────────┐
+│  1. Profiler          column types, nulls, IDs       │
+│  2. Signal Detector   8 signal types                 │
+│  3. Question Gen      investigation questions        │
+│  4. Hypothesis Gen    simple + composite             │
+│  5. Evidence Builders 7 builders, registry pattern   │
+│  6. Hypothesis Validator  supporting / refuting      │
+│  7. Report Generator  findings + executive summary   │
+│  8. AI Narrative      mock (now) → LLM (future)      │
+│  9. Interactive       follow-ups, data gaps, paths   │
+└──────────────────────────────────────────────────────┘
+    │
+    ▼
+AIInvestigationReport (JSON)
+```
+
+See [docs/architecture.md](docs/architecture.md) for the full architecture and design decisions.
+
+---
+
+## Example Output
+
+```
+======================================================================
+  INVESTIGATIVE DATA ANALYST — 200 rows × 6 columns
+======================================================================
+
+--- 2. SIGNALS DETECTED (5) ---
+  [warning] outlier_detected    20 outliers detected in revenue
+  [info   ] decreasing_trend    Column 'revenue' shows a decreasing trend
+  [info   ] right_skewed        Column 'revenue' is right skewed
+
+--- 6. VALIDATION — 6 supported, 0 refuted, 0 inconclusive ---
+
+--- 8. AI NARRATIVE ---
+  Investigation complete. 6 hypotheses tested: 6 supported.
+  Overall risk: low with high confidence.
+
+  Key Findings:
+  • [SUPPORTED] revenue 存在异常值 (confidence: medium)
+  • [SUPPORTED] 极端值可能正在影响整体结论 (confidence: medium)
+
+--- 9. INTERACTIVE INVESTIGATION ---
+  Follow-up Questions:
+  • [high/cross_pattern] Are the detected outliers the CAUSE of the right skew?
+  • [medium/drill_down] Do the outliers correlate with specific regions or periods?
+
+  Data Gaps:
+  • Customer segmentation data → CRM system
+  • External benchmarks → Industry reports
+
+  Investigation Paths:
+  ▶ Investigate outlier records in revenue (5 steps)
+  ▶ Diagnose the decline in revenue (6 steps)
+```
+
+---
+
+## Project Structure
+
+```
 app/
-├── api/
-│   └── FastAPI endpoints
-│
-├── models/
-│   └── Enumerations
-│
-├── schemas/
-│   └── Data models
-│
-├── services/
-│   ├── profiler
-│   ├── signal detector
-│   ├── question generator
-│   ├── hypothesis generator
-│   └── evidence generator
-│
-└── main.py
+├── api/              FastAPI endpoints (upload, tasks)
+├── services/         Business logic
+│   ├── profiler.py           column typing, identifiers
+│   ├── signal_detector.py    8 signal types
+│   ├── question_generator.py investigation questions
+│   ├── hypothesis_generator.py  simple + composite
+│   ├── evidence/             7 evidence builders (registry)
+│   ├── hypothesis_validator.py  evidence classification
+│   ├── report_generator.py   templated findings + exec summary
+│   ├── narrative_generator.py  Protocol + Mock (Phase 7)
+│   ├── interactive_investigator.py  follow-ups, gaps, paths (Phase 8)
+│   └── pipeline.py           orchestrator
+├── schemas/          Pure data models (Pydantic)
+│   ├── ai_report.py          AIInvestigationReport, Narrative
+│   ├── interactive.py        FollowUpQuestion, DataGap, InvestigationPath
+│   └── ...
+├── prompts/          Versioned prompt contracts (Phase 7)
+│   ├── investigation_narrative.py
+│   └── executive_brief.py
+├── models/           Enums (SignalType, HypothesisStatus, ...)
+└── core/             Settings, logging
 
-docs/
-├── architecture.md
-├── principles.md
-├── roadmap.md
-├── vision.md
-└── architecture_decisions.md
+tests/                162 tests, 23 fixtures
+docs/                 Architecture, roadmap, decisions
+examples/             Quick-start script
 ```
 
 ---
 
-# Tech Stack
+## Design Principles
 
-- Python
-- FastAPI
-- Pandas
-- Pydantic
-- PostgreSQL
-- Alembic
+- **Evidence before conclusions** — every finding references statistical evidence
+- **Explainability** — traceable from claim → evidence → signal
+- **Deterministic analysis first, LLM reasoning second** — stats are reproducible
+- **Provider-agnostic** — LLM layer uses a Protocol; swap Anthropic/OpenAI/mock via config
+- **Extensible** — registry pattern for signal detectors and evidence builders
+- **Wrapping, not extending** — generative outputs wrap deterministic ones, never modify them
 
-Planned:
-
-- OpenAI / Anthropic
-- LangGraph
-- LangSmith
-- Docker
+See [docs/principles.md](docs/principles.md) and [docs/decisions.md](docs/decisions.md) for the full rationale.
 
 ---
 
-# Design Principles
-
-The project is built around several core principles:
-
-- Investigation before reporting
-- Evidence-based reasoning
-- Explainability
-- Extensible architecture
-- Separation of responsibilities
-- Registry-based extensibility
-- Deterministic analysis before LLM reasoning
-
-For detailed design decisions, see the documentation in the `docs/` directory.
-
----
-
-# Roadmap
+## Roadmap
 
 | Phase | Status |
-|--------|--------|
+|---|---|
 | Phase 1 – Infrastructure | ✅ |
 | Phase 2 – Dataset Profiling | ✅ |
 | Phase 3 – Signal Detection | ✅ |
 | Phase 4 – Question Generation | ✅ |
 | Phase 5 – Hypothesis Generation | ✅ |
 | Phase 6 – Evidence-Based Investigation | ✅ |
-| Phase 7 – LLM Integration | ⏳ |
-| Phase 8 – Interactive Investigation | ⏳ |
+| Phase 7 – LLM Integration (Protocol + Mock) | ✅ |
+| Phase 8 – Interactive Investigation | ✅ |
 | Phase 9 – Multi-Dataset Analysis | ⏳ |
+| Phase 10 – Deployment & Operations | ⏳ |
+
+See [docs/roadmap.md](docs/roadmap.md) for details.
 
 ---
 
-# Quick Start
-
-Clone the repository:
+## Tests
 
 ```bash
-git clone https://github.com/Nakurusu/Investigative-Data-Analyst.git
-cd Investigative-Data-Analyst
+pip install -r requirements-dev.txt
+python -m pytest tests/ -v
 ```
 
-Install dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
-Run database migrations:
-
-```bash
-alembic upgrade head
-```
-
-Start the development server:
-
-```bash
-uvicorn app.main:app --reload
-```
+**162 tests, 23 fixtures** covering all pipeline stages.
 
 ---
 
-# Documentation
+## Tech Stack
 
-Project documentation is available under the `docs/` directory.
+- Python 3.11+
+- Pandas, Pydantic
+- FastAPI, Uvicorn
+- PostgreSQL, SQLAlchemy, Alembic
+- pytest (162 tests)
 
-- **Vision** – Long-term project goals
-- **Architecture** – System architecture and pipeline
-- **Principles** – Engineering and design principles
-- **Roadmap** – Development plan
-- **Architecture Decisions** – Important design decisions
-
----
-
-# Current Status
-
-The project is currently focused on building the core investigation engine.
-
-Current development work includes:
-
-- Evidence generation
-- Investigation reports
-- Preparation for LLM integration
+Planned: Anthropic SDK, OpenAI SDK, Docker
 
 ---
 
-# Future Vision
+## Documentation
 
-The long-term objective is to evolve Investigative Data Analyst into a general-purpose AI investigation platform capable of:
-
-- Business investigation
-- Financial analysis
-- Operational diagnostics
-- Root-cause analysis
-- Multi-dataset reasoning
-- Human-AI collaborative investigation
+- [Vision](docs/vision.md) — long-term project goals
+- [Architecture](docs/architecture.md) — system design and pipeline flow
+- [Principles](docs/principles.md) — product and engineering principles
+- [Roadmap](docs/roadmap.md) — development phases
+- [Decisions](docs/decisions.md) — important architecture decisions
 
 ---
 
-# License
+## License
 
-MIT License
+MIT
