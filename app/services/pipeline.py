@@ -10,6 +10,7 @@ from app.models.enums import TaskStatus
 from app.services.profiler import profile_dataframe
 from app.services.quality import assess_data_quality
 from app.services.signal_detector import detect_signals
+from app.services.evidence import generate_evidence
 from app.services.hypothesis_generator import generate_hypotheses
 
 def process_uploaded_file(task_id, file):
@@ -37,6 +38,9 @@ def process_uploaded_file(task_id, file):
 
         signal_report = detect_signals(df, profile)
         logger.info(signal_report.model_dump())
+
+        evidence_report = generate_evidence(df, profile, signal_report)
+        logger.info(evidence_report.model_dump())
 
         hypothesis_report = generate_hypotheses(signal_report)
         logger.info(hypothesis_report.model_dump())

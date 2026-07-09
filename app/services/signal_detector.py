@@ -149,7 +149,7 @@ def detect_trends(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
 def detect_concentration(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
     signals = []
     categorical_columns = [
-        c.name for c in profile.columns if c.dtype == (ColumnType.CATEGORICAL, ColumnType.TEXT) and not c.is_identifier
+        c.name for c in profile.columns if c.dtype in (ColumnType.CATEGORICAL, ColumnType.TEXT) and not c.is_identifier
     ]
     numeric_columns = [
         c.name for c in profile.columns if c.dtype == ColumnType.NUMERIC and not c.is_identifier
