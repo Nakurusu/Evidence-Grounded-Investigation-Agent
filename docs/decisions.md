@@ -1,0 +1,325 @@
+# Architecture Decisions
+
+This document records important architectural and product decisions made during the development of Investigative Data Analyst.
+
+The purpose of this document is to capture **why** decisions were made, rather than **what** was implemented.
+
+Implementation details belong in code and documentation. This file preserves the reasoning behind major design choices.
+
+---
+
+# Decision 001
+
+## Title
+
+Investigation-first architecture
+
+## Date
+
+2026-07-09
+
+## Status
+
+Accepted
+
+## Context
+
+Many existing data analysis tools focus on descriptive statistics, dashboards, or automated exploratory data analysis (AutoEDA).
+
+The goal of this project is different.
+
+## Decision
+
+Investigative Data Analyst is designed as an investigation engine rather than an AutoEDA tool.
+
+The system should guide users through discovering, validating, and explaining business problems.
+
+## Reason
+
+The objective is to help users answer questions such as:
+
+- What happened?
+- Why did it happen?
+- What evidence supports this?
+- What should be investigated next?
+
+instead of simply describing a dataset.
+
+## Consequences
+
+Future features should strengthen investigation capabilities rather than reporting capabilities.
+
+---
+
+# Decision 002
+
+## Title
+
+Evidence-based reasoning
+
+## Date
+
+2026-07-09
+
+## Status
+
+Accepted
+
+## Context
+
+Signals alone are not sufficient to justify business conclusions.
+
+Hypotheses should be supported by measurable evidence.
+
+## Decision
+
+Evidence generation is an independent stage in the investigation pipeline.
+
+Evidence exists to validate hypotheses before they appear in investigation reports.
+
+## Reason
+
+Separating evidence from hypotheses improves explainability and reduces unsupported conclusions.
+
+This also prepares the system for future LLM reasoning.
+
+## Consequences
+
+Investigation reports should reference supporting evidence for every validated hypothesis.
+
+Future LLM integrations should consume structured evidence instead of raw signals whenever possible.
+
+---
+
+# Decision 003
+
+## Title
+
+Layered investigation pipeline
+
+## Date
+
+2026-07-09
+
+## Status
+
+Accepted
+
+## Context
+
+The project consists of multiple analysis stages.
+
+Each stage transforms information into a higher level of abstraction.
+
+## Decision
+
+The investigation pipeline follows a layered architecture:
+
+```
+Dataset
+    ↓
+Profile
+    ↓
+Signals
+    ↓
+Questions
+    ↓
+Evidence
+    ↓
+Hypotheses
+    ↓
+Investigation Report
+```
+
+Each stage consumes outputs from the previous stage.
+
+## Reason
+
+A layered pipeline improves modularity, explainability, and maintainability.
+
+## Consequences
+
+New functionality should integrate into the pipeline instead of bypassing existing stages.
+
+---
+
+# Decision 004
+
+## Title
+
+Registry-based extensibility
+
+## Date
+
+2026-07-09
+
+## Status
+
+Accepted
+
+## Context
+
+Signal types, evidence builders, and future generators will continue to grow.
+
+Large conditional branches become difficult to maintain.
+
+## Decision
+
+Generators should use registry patterns whenever practical.
+
+For example:
+
+- Signal builders
+- Evidence builders
+- Future report generators
+
+should register implementations instead of relying on large if-else chains.
+
+## Reason
+
+Registry-based designs improve extensibility and reduce modification of existing code.
+
+## Consequences
+
+Adding new investigation capabilities should primarily involve registering new builders.
+
+---
+
+# Decision 005
+
+## Title
+
+Explainability over automation
+
+## Date
+
+2026-07-09
+
+## Status
+
+Accepted
+
+## Context
+
+AI-generated conclusions are only valuable if users understand how they were produced.
+
+## Decision
+
+Every investigation result should remain traceable.
+
+The relationship between:
+
+- Signal
+- Evidence
+- Hypothesis
+
+should always be preserved.
+
+## Reason
+
+Users should be able to understand and verify why a conclusion was generated.
+
+## Consequences
+
+Future reports and LLM summaries should reference supporting evidence whenever possible.
+
+---
+
+# Decision 006
+
+## Title
+
+Deterministic analysis before LLM reasoning
+
+## Date
+
+2026-07-09
+
+## Status
+
+Accepted
+
+## Context
+
+Statistical calculations should be reproducible and verifiable.
+
+Large language models are better suited for interpretation than computation.
+
+## Decision
+
+Deterministic code is responsible for:
+
+- profiling
+- statistics
+- signal detection
+- evidence generation
+
+LLMs are responsible for:
+
+- reasoning
+- summarization
+- narrative generation
+- executive reporting
+
+## Reason
+
+Separating computation from reasoning improves reliability and explainability.
+
+## Consequences
+
+Future LLM integrations should consume structured investigation outputs instead of raw datasets.
+
+---
+
+# Decision 007
+
+## Title
+
+Business logic separation
+
+## Date
+
+2026-07-09
+
+## Status
+
+Accepted
+
+## Context
+
+As the project grows, responsibilities should remain clearly separated.
+
+## Decision
+
+Schemas should only define data structures.
+
+Business logic belongs inside services.
+
+API layers should orchestrate workflows rather than perform analysis.
+
+## Reason
+
+Keeping responsibilities separate improves maintainability, testing, and future extensibility.
+
+## Consequences
+
+Schemas should not perform calculations.
+
+Business rules should remain inside service modules.
+
+---
+
+# Future Decisions
+
+This document should continue to grow as the architecture evolves.
+
+Examples of future decisions include:
+
+- Interactive investigation workflow
+- Multi-dataset relationship discovery
+- Root-cause reasoning strategy
+- Agent planning architecture
+- Memory management
+- Prompt engineering strategy
+- Confidence scoring methodology
+- Plugin or extension system
