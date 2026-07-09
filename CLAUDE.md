@@ -193,25 +193,23 @@ When adding new functionality, prefer creating a new builder or generator rather
 
 Current roadmap phase:
 
-**Phase 6 – Evidence-Based Investigation**
+**Phase 7 – LLM Integration
 
-Current objectives:
+Goals:
 
-- implement Evidence Generator
-- support multiple Evidence Builders
-- build Investigation Report
-- prepare structured evidence for future LLM integration
+- Natural language summaries
+- Investigation narratives
+- Executive reports
 
-Do not start implementing large LLM workflows until Phase 6 is complete.
+Outputs:
+
+- AI Investigation Report
 
 ---
 
 # Future Roadmap
 
 The remaining roadmap is:
-
-Phase 6
-- Evidence-Based Investigation
 
 Phase 7
 - LLM Integration
@@ -309,3 +307,19 @@ When suggesting new features:
 When uncertain:
 
 Favor architectural consistency over short-term convenience.
+
+## Before Starting Any New Task
+
+Always do the following before writing code:
+
+1. Read CLAUDE.md
+2. Read README.md
+3. Read docs/architecture.md
+4. Read docs/roadmap.md
+5. Read docs/decisions.md
+6. Read docs/vision.md
+7. Read docs/principles.md
+8. Understand the current pipeline implementation.
+9. Summarize your understanding.
+10. Propose an implementation plan.
+11. Wait for confirmation before making architectural changes.

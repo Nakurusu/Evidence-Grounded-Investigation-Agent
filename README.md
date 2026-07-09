@@ -164,7 +164,7 @@ For detailed design decisions, see the documentation in the `docs/` directory.
 | Phase 3 – Signal Detection | ✅ |
 | Phase 4 – Question Generation | ✅ |
 | Phase 5 – Hypothesis Generation | ✅ |
-| Phase 6 – Evidence-Based Investigation | 🚧 |
+| Phase 6 – Evidence-Based Investigation | ✅ |
 | Phase 7 – LLM Integration | ⏳ |
 | Phase 8 – Interactive Investigation | ⏳ |
 | Phase 9 – Multi-Dataset Analysis | ⏳ |
