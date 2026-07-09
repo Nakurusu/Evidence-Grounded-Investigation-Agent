@@ -20,28 +20,21 @@ Drop in a CSV. Get back:
 
 ---
 
-## Quick Start (No Server, No API Keys)
+## Quick Start
 
 ```bash
+# CLI demo — no server, no database, no API keys:
 pip install -r requirements.txt
+python examples/run_investigation.py --demo sales
 
-# Run on a built-in demo scenario:
-python examples/run_investigation.py --demo sales       # revenue concentration + outliers
-python examples/run_investigation.py --demo churn       # missing data + declining spend
-python examples/run_investigation.py --demo operations  # low variance + sensor anomalies
+# API server:
+uvicorn app.main:app --reload
 
-# Run on your own data:
-python examples/run_investigation.py path/to/your_data.csv
+# Docker Compose — one command:
+docker compose up -d
 ```
 
-This runs the **full pipeline** (all 8 phases) without needing FastAPI, PostgreSQL, or any LLM API keys. A JSON report is saved alongside the input CSV.
-
-**Want to use a real LLM?**  Copy `.env.example` → `.env` and set your API key:
-
-```bash
-cp .env.example .env
-# Edit .env: LLM_MODE=openai, LLM_API_KEY=sk-xxx
-```
+See [examples/README.md](examples/README.md) for detailed instructions for each mode.
 
 ---
 
