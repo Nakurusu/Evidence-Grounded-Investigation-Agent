@@ -85,6 +85,11 @@ def generate_composite_hypotheses(signal_report: SignalReport) -> list[Hypothesi
 
     for required_signals, title, description, confidence in COMPOSITE_HYPOTHESES:
         if required_signals.issubset(signal_types):
+            related_columns = list({
+                s.column
+                for s in signal_report.signals
+                if s.type in required_signals and s.column
+            })
             hypotheses.append(
                 Hypothesis(
                     title=title,
@@ -92,6 +97,7 @@ def generate_composite_hypotheses(signal_report: SignalReport) -> list[Hypothesi
                     confidence=confidence,
                     supporting_signals=list(required_signals),
                     is_composite=True,
+                    related_columns=related_columns,
                 )
             )
 
@@ -122,7 +128,8 @@ def generate_hypotheses(signal_report: SignalReport) -> HypothesisReport:
                 title=title,
                 description=description,
                 confidence=confidence,
-                supporting_signals=[signal.type]
+                supporting_signals=[signal.type],
+                related_columns=[signal.column] if signal.column else [],
             )
         )
 

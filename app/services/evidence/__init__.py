@@ -37,6 +37,10 @@ def generate_evidence_for_hypothesis(
     relevant_signals = [
         s for s in signal_report.signals
         if s.type in hypothesis.supporting_signals
+        and (
+            not hypothesis.related_columns
+            or s.column in hypothesis.related_columns
+        )
     ]
 
     evidence: list[Evidence] = []

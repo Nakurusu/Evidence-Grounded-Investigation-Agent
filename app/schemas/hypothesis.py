@@ -7,6 +7,7 @@ class Hypothesis(BaseModel):
     supporting_signals: list[SignalType]
     description: str
     is_composite: bool = False
+    related_columns: list[str] = []
 
 class HypothesisReport(BaseModel):
     hypotheses: list[Hypothesis]

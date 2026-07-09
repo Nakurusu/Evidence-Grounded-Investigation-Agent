@@ -33,6 +33,26 @@ def build_trend_evidence(
 
     return [
         Evidence(
+            title=f"First value of {signal.column}",
+            description=(
+                f"Initial value of '{signal.column}' is {first_val:.2f}"
+            ),
+            metric="first_val",
+            value=round(first_val, 4),
+            supporting_signal=signal.type,
+            related_column=signal.column,
+        ),
+        Evidence(
+            title=f"Last value of {signal.column}",
+            description=(
+                f"Final value of '{signal.column}' is {last_val:.2f}"
+            ),
+            metric="last_val",
+            value=round(last_val, 4),
+            supporting_signal=signal.type,
+            related_column=signal.column,
+        ),
+        Evidence(
             title=f"Aggregate change in {signal.column}",
             description=(
                 f"'{signal.column}' changed from {first_val:.2f} to "

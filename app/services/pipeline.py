@@ -14,6 +14,7 @@ from app.services.evidence import generate_all_evidence
 from app.services.hypothesis_generator import generate_hypotheses
 from app.services.question_generator import generate_questions
 from app.services.hypothesis_validator import validate_hypotheses
+from app.services.report_generator import generate_report
 
 def process_uploaded_file(task_id, file):
 
@@ -60,11 +61,15 @@ def process_uploaded_file(task_id, file):
         logger.info(validation_report.model_dump())
 
         summary = analyze_dataframe(df, profile)
+
+        report = generate_report(validation_report, profile, summary)
+        logger.info(report.model_dump())
+
         logger.info(
             f"completed task {task_id}"
         )
         task.status = TaskStatus.COMPLETED.value
-        task.result = summary
+        task.result = report.model_dump()
         task.finished_at = datetime.now(UTC)
         db.commit()
         db.close()
