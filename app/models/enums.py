@@ -45,3 +45,8 @@ class HypothesisConfidence(str, Enum):
     HIGH = "high"
     MEDIUM = "medium"
     LOW = "low"
+
+class HypothesisStatus(str, Enum):
+    SUPPORTED = "supported"
+    REFUTED = "refuted"
+    INCONCLUSIVE = "inconclusive"
