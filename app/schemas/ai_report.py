@@ -17,6 +17,7 @@ from pydantic import BaseModel
 
 from app.schemas.investigation_report import InvestigationReport
 from app.schemas.interactive import InteractiveInvestigationReport
+from app.schemas.cross_dataset import InvestigationGraph
 
 
 # ---------------------------------------------------------------------------
@@ -115,3 +116,9 @@ class AIInvestigationReport(BaseModel):
     """Forward-looking interactive investigation output (Phase 8).
     Follow-up questions, data gaps, guided investigation paths, and
     unresolved areas.  Produced deterministically — no LLM required."""
+
+    investigation_graph: InvestigationGraph | None = None
+    """Cross-dataset investigation graph (Phase 9).
+    Present when a multi-dataset investigation was run.  Describes
+    shared dimensions, correlated trends, and cross-dataset hypotheses
+    between the primary and secondary datasets."""
