@@ -90,7 +90,7 @@ def process_uploaded_file(task_id, file):
             f"completed task {task_id}"
         )
         task.status = TaskStatus.COMPLETED.value
-        task.result = ai_report.model_dump()
+        task.result = ai_report.model_dump(mode="json")
         task.finished_at = datetime.now(UTC)
         db.commit()
         db.close()
@@ -167,7 +167,7 @@ def process_multi_dataset_upload(
 
         logger.info(f"completed multi-dataset task {task_id}")
         task.status = TaskStatus.COMPLETED.value
-        task.result = ai_report.model_dump()
+        task.result = ai_report.model_dump(mode="json")
         task.finished_at = datetime.now(UTC)
         db.commit()
         db.close()

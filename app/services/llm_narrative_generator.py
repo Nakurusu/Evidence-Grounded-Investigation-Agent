@@ -74,10 +74,12 @@ class LLMNarrativeGenerator:
         api_key: str,
         base_url: str = "https://api.openai.com/v1",
         model: str = "gpt-4o",
+        max_tokens: int = 4096,
         max_retries: int = 1,
     ):
         self._client = OpenAI(api_key=api_key, base_url=base_url)
         self._model = model
+        self._max_tokens = max_tokens
         self._max_retries = max_retries
 
     # ------------------------------------------------------------------
@@ -100,7 +102,7 @@ class LLMNarrativeGenerator:
             ValueError: If the LLM response cannot be parsed after retries.
         """
         es = report.executive_summary
-        report_json = report.model_dump_json(indent=2)
+        report_json = report.model_dump_json()
         output_schema = json.dumps(Narrative.model_json_schema())
 
         user_message = build_user_message(
@@ -161,7 +163,8 @@ class LLMNarrativeGenerator:
                 {"role": "user", "content": user_message},
             ],
             temperature=0.3,
-            max_tokens=2048,
+            max_tokens=self._max_tokens,
+            response_format={"type": "json_object"},
         )
         content = response.choices[0].message.content
         if content is None:
