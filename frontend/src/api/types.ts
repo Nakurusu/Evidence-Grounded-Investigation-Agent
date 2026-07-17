@@ -1,0 +1,166 @@
+/* ------------------------------------------------------------------ */
+/*  TypeScript types mirroring the backend Pydantic schemas.          */
+/*  These are the source-of-truth contracts between frontend & API.   */
+/* ------------------------------------------------------------------ */
+
+// -- Enums ----------------------------------------------------------------
+
+export type TaskStatus = "pending" | "processing" | "completed" | "failed";
+
+export type SignalType =
+  | "high_missing_rate"
+  | "high_cardinality"
+  | "outlier_detected"
+  | "increasing_trend"
+  | "decreasing_trend"
+  | "high_concentration"
+  | "right_skewed"
+  | "left_skewed"
+  | "low_variance";
+
+export type SignalSeverity = "info" | "warning" | "high";
+
+export type HypothesisStatus = "supported" | "refuted" | "inconclusive";
+
+export type HypothesisConfidence = "high" | "medium" | "low";
+
+export type ColumnType = "numeric" | "categorical" | "datetime" | "boolean" | "text";
+
+// -- Task ------------------------------------------------------------------
+
+export interface TaskResponse {
+  id: string;
+  status: TaskStatus;
+  filename: string;
+  created_at: string;
+  finished_at: string | null;
+  result: AIInvestigationReport | null;
+  error_message: string | null;
+}
+
+// -- Investigation Report --------------------------------------------------
+
+export interface ExecutiveSummary {
+  total_hypotheses: number;
+  supported_count: number;
+  refuted_count: number;
+  inconclusive_count: number;
+  highest_priority_findings: string[];
+  overall_risk: string;
+  overall_confidence: string;
+}
+
+export interface DatasetSummary {
+  row_count: number;
+  column_count: number;
+  numeric_columns: string[];
+  categorical_columns: string[];
+  datetime_columns: string[];
+  text_columns: string[];
+  boolean_columns: string[];
+}
+
+export interface Evidence {
+  title: string;
+  description: string;
+  metric: string | null;
+  value: string | number | null;
+  supporting_signal: SignalType | null;
+  related_column: string | null;
+}
+
+export interface Finding {
+  title: string;
+  observation: string;
+  status: HypothesisStatus;
+  confidence: HypothesisConfidence;
+  supporting_evidence: Evidence[];
+  contradicting_evidence: Evidence[];
+  analysis: string;
+  business_impact: string;
+  recommendation: string;
+}
+
+export interface InvestigationReport {
+  executive_summary: ExecutiveSummary;
+  dataset_summary: DatasetSummary;
+  findings: Finding[];
+  next_steps: string[];
+}
+
+// -- Narrative -------------------------------------------------------------
+
+export interface Narrative {
+  executive_summary: string;
+  key_findings: string[];
+  supporting_evidence_summary: string;
+  business_impact_summary: string;
+  recommendations: string[];
+}
+
+export interface ModelMetadata {
+  provider: string;
+  model_name: string;
+  prompt_version: string;
+  generated_at: string;
+}
+
+// -- Interactive Investigation ---------------------------------------------
+
+export interface FollowUpQuestion {
+  question: string;
+  priority: string;
+  category: string;
+  related_finding_titles: string[];
+  required_data: string[];
+}
+
+export interface DataGap {
+  gap: string;
+  impact: string;
+  affected_hypotheses: string[];
+  suggested_source: string;
+}
+
+export interface InvestigationPath {
+  title: string;
+  description: string;
+  steps: string[];
+  starting_finding: string;
+}
+
+export interface InteractiveInvestigationReport {
+  follow_up_questions: FollowUpQuestion[];
+  data_gaps: DataGap[];
+  investigation_paths: InvestigationPath[];
+  unresolved_areas: string[];
+}
+
+// -- Cross-Dataset (Phase 9) -----------------------------------------------
+
+export interface CrossDatasetRelation {
+  type: string;
+  description: string;
+  primary_context: string;
+  secondary_context: string;
+  shared_columns: string[];
+  confidence: string;
+}
+
+export interface InvestigationGraph {
+  primary_dataset: string;
+  secondary_datasets: string[];
+  shared_dimensions: string[];
+  relations: CrossDatasetRelation[];
+  cross_hypotheses: string[];
+}
+
+// -- Top-level AI Report ---------------------------------------------------
+
+export interface AIInvestigationReport {
+  investigation_report: InvestigationReport;
+  narrative: Narrative | null;
+  model_metadata: ModelMetadata | null;
+  interactive_investigation: InteractiveInvestigationReport | null;
+  investigation_graph: InvestigationGraph | null;
+}
