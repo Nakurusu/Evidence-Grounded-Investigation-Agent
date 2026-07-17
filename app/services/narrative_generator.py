@@ -95,17 +95,17 @@ class MockNarrativeGenerator:
 
         # -- Executive Summary -------------------------------------------------
         executive_summary = (
-            f"Investigation complete.  {es.total_hypotheses} hypotheses "
-            f"were tested: {es.supported_count} supported, "
-            f"{es.refuted_count} refuted, {es.inconclusive_count} "
-            f"inconclusive.  Overall risk is assessed as **{es.overall_risk}** "
-            f"with **{es.overall_confidence}** confidence."
+            f"调查完成。共检验 {es.total_hypotheses} 个假设："
+            f"{es.supported_count} 个被支持，"
+            f"{es.refuted_count} 个被驳回，{es.inconclusive_count} "
+            f"个未确定。整体风险评估为 **{es.overall_risk}**，"
+            f"置信度为 **{es.overall_confidence}**。"
         )
 
         # -- Key Findings ------------------------------------------------------
         key_findings = [
             f"[{f.status.value.upper()}] {f.title} "
-            f"(confidence: {f.confidence.value})"
+            f"(置信度: {f.confidence.value})"
             for f in report.findings
         ]
 
@@ -120,10 +120,10 @@ class MockNarrativeGenerator:
                 else:
                     evidence_parts.append(e.title)
         supporting_evidence_summary = (
-            "Evidence collected across findings:\n- "
+            "以下为各发现收集的证据：\n- "
             + "\n- ".join(evidence_parts)
             if evidence_parts
-            else "No supporting evidence was collected."
+            else "未收集到支持性证据。"
         )
 
         # -- Business Impact ---------------------------------------------------
@@ -132,28 +132,25 @@ class MockNarrativeGenerator:
             if f.confidence.value == "high" and f.status.value == "supported"
         ]
         if high_findings:
-            titles = ", ".join(f"'{f.title}'" for f in high_findings)
+            titles = "、".join(f"'{f.title}'" for f in high_findings)
             business_impact_summary = (
-                f"High-priority findings requiring attention: {titles}.  "
-                f"These represent the most significant confirmed risks "
-                f"and opportunities in the dataset."
+                f"需要关注的高优先级发现：{titles}。"
+                f"这些是数据集中最重要的已确认风险和机会。"
             )
         elif es.supported_count > 0:
             business_impact_summary = (
-                f"{es.supported_count} hypotheses were supported by "
-                f"evidence.  These findings should be reviewed for "
-                f"business impact."
+                f"{es.supported_count} 个假设获得证据支持。"
+                f"应审查这些发现的业务影响。"
             )
         else:
             business_impact_summary = (
-                "No hypotheses were confirmed.  Consider collecting "
-                "additional data to strengthen the investigation."
+                "没有假设被确认。建议收集更多数据以加强调查。"
             )
 
         # -- Recommendations ---------------------------------------------------
         recommendations = report.next_steps[:5] if report.next_steps else [
-            "Review the investigation findings with domain experts.",
-            "Collect additional data for inconclusive hypotheses.",
+            "与领域专家一起审查调查发现。",
+            "为未确定的假设收集更多数据。",
         ]
 
         narrative = Narrative(

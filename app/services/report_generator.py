@@ -14,10 +14,7 @@ from app.schemas.investigation_report import (
 
 
 # ---------------------------------------------------------------------------
-# Finding templates — one entry per (SignalType × HypothesisStatus)
-#
-# Placeholders like {column}, {mean}, {skewness}, etc. are filled from
-# evidence metric values at generation time.
+# Finding templates (Simplified Chinese)
 # ---------------------------------------------------------------------------
 
 _FINDING_TEMPLATES: dict[SignalType, dict[HypothesisStatus, dict[str, str]]] = {
@@ -25,71 +22,57 @@ _FINDING_TEMPLATES: dict[SignalType, dict[HypothesisStatus, dict[str, str]]] = {
     SignalType.RIGHT_SKEWED: {
         HypothesisStatus.SUPPORTED: {
             "observation": (
-                "Column '{column}' exhibits a right-skewed distribution: "
-                "mean ({mean}) is significantly higher than median ({median}), "
-                "skewness={skewness}."
+                "列 '{column}' 呈右偏分布：均值 ({mean}) 显著高于中位数 "
+                "({median})，偏度系数={skewness}。"
             ),
             "analysis": (
-                "The positive skewness coefficient ({skewness}) confirms that "
-                "a small number of high-value records are pulling the average "
-                "well above the typical value. The mean is not representative "
-                "of the majority of observations."
+                "偏度系数 ({skewness}) 为正，确认少数高值记录将平均值拉高至"
+                "典型值之上。均值不能代表大多数观测值。"
             ),
             "business_impact": (
-                "Business averages may be misleading for decision-making. "
-                "Performance metrics based on means alone will overstate "
-                "typical outcomes. The business may be dependent on a small "
-                "number of high-value transactions, customers, or products."
+                "基于均值的业务指标可能误导决策。仅依赖均值进行绩效评估会高估"
+                "典型表现。业务可能依赖少数高价值交易、客户或产品。"
             ),
             "recommendation": (
-                "Segment '{column}' to separate high-value outliers from the "
-                "typical population. Use median-based metrics for baseline "
-                "reporting. Investigate whether high-value records represent "
-                "sustainable business or one-off events."
+                "对 '{column}' 进行分段分析，将高值异常值与典型群体区分开。"
+                "使用中位数指标进行基线报告。调查高值记录是可持续业务还是"
+                "一次性事件。"
             ),
         },
         HypothesisStatus.REFUTED: {
             "observation": (
-                "Column '{column}' was flagged for possible right-skewed "
-                "distribution, but the skewness coefficient ({skewness}) does "
-                "not confirm a meaningful right skew."
+                "列 '{column}' 被标记为可能存在右偏分布，但偏度系数 "
+                "({skewness}) 未确认有意义右偏。"
             ),
             "analysis": (
-                "The statistical evidence does not support the right-skew "
-                "hypothesis. The distribution may be approximately symmetric "
-                "or the sample may be too small to detect skew."
+                "统计证据不支持右偏假设。分布可能近似对称，或样本量不足以"
+                "检测偏度。"
             ),
             "business_impact": (
-                "No evidence of head-heavy concentration risk in this "
-                "dimension. Standard statistical measures (mean, standard "
-                "deviation) are likely appropriate for reporting."
+                "该维度未发现头部集中的风险。标准统计指标（均值、标准差）"
+                "适用于报告。"
             ),
             "recommendation": (
-                "No immediate action required. Re-evaluate if data volume "
-                "increases or if business context suggests hidden "
-                "concentration risk."
+                "暂不需要采取行动。如数据量增加或业务场景提示存在隐藏的"
+                "集中风险，请重新评估。"
             ),
         },
         HypothesisStatus.INCONCLUSIVE: {
             "observation": (
-                "Column '{column}' was flagged for possible right-skewed "
-                "distribution, but evidence was insufficient to confirm or "
-                "refute the pattern."
+                "列 '{column}' 被标记为可能存在右偏分布，但证据不足以确认"
+                "或否定该模式。"
             ),
             "analysis": (
-                "Available metrics could not conclusively validate the skew "
-                "hypothesis. This may be due to insufficient data, missing "
-                "metric values, or a borderline distribution."
+                "现有指标无法确定性地验证偏度假设。可能原因：数据不足、"
+                "指标值缺失或分布处于边界状态。"
             ),
             "business_impact": (
-                "Cannot determine whether business averages are reliable "
-                "for this dimension. Decisions based on '{column}' means "
-                "should be made with caution."
+                "无法确定该维度的业务均值是否可靠。基于 '{column}' 均值的"
+                "决策应谨慎。"
             ),
             "recommendation": (
-                "Collect more data or review data quality for '{column}'. "
-                "Consider manual inspection of the distribution before "
-                "drawing business conclusions."
+                "收集更多数据或检查 '{column}' 的数据质量。在做出业务结论"
+                "前，建议手动检查分布情况。"
             ),
         },
     },
@@ -97,64 +80,50 @@ _FINDING_TEMPLATES: dict[SignalType, dict[HypothesisStatus, dict[str, str]]] = {
     SignalType.LEFT_SKEWED: {
         HypothesisStatus.SUPPORTED: {
             "observation": (
-                "Column '{column}' exhibits a left-skewed distribution: "
-                "mean ({mean}) is below median ({median}), "
-                "skewness={skewness}."
+                "列 '{column}' 呈左偏分布：均值 ({mean}) 低于中位数 "
+                "({median})，偏度系数={skewness}。"
             ),
             "analysis": (
-                "The negative skewness coefficient ({skewness}) indicates "
-                "that a small number of unusually low values are pulling "
-                "the average downward. The mean understates the typical value."
+                "偏度系数 ({skewness}) 为负，表明少数异常低值将平均值拉低。"
+                "均值低估了典型值水平。"
             ),
             "business_impact": (
-                "Business averages may understate typical performance. "
-                "A small number of underperforming records could be "
-                "distorting overall metrics. If these represent real "
-                "business events, they warrant investigation."
+                "业务均值可能低估了典型表现。少数低绩效记录可能正在扭曲"
+                "整体指标。如果这些记录反映实际业务事件，值得深入调查。"
             ),
             "recommendation": (
-                "Investigate the low-value records in '{column}' to "
-                "determine whether they reflect data errors, special "
-                "cases, or systemic underperformance. Exclude or segment "
-                "them for cleaner reporting."
+                "调查 '{column}' 中的低值记录，确定其是否反映数据错误、"
+                "特殊情况或系统性低绩效。排除或分段处理以获得更清晰的报告。"
             ),
         },
         HypothesisStatus.REFUTED: {
             "observation": (
-                "Column '{column}' was flagged for possible left-skewed "
-                "distribution, but the skewness coefficient ({skewness}) does "
-                "not confirm a meaningful left skew."
+                "列 '{column}' 被标记为可能存在左偏分布，但偏度系数 "
+                "({skewness}) 未确认有意义左偏。"
             ),
             "analysis": (
-                "The statistical evidence does not support the left-skew "
-                "hypothesis. The distribution may be approximately symmetric."
+                "统计证据不支持左偏假设。分布可能近似对称。"
             ),
             "business_impact": (
-                "No evidence of systemic underperformance bias in this "
-                "dimension. Standard reporting metrics should be reliable."
+                "该维度未发现系统性低绩效偏差。标准报告指标应该是可靠的。"
             ),
             "recommendation": (
-                "No immediate action required. Re-evaluate if new data "
-                "suggests emerging low-end outliers."
+                "暂不需要采取行动。如新数据出现低端异常值迹象，请重新评估。"
             ),
         },
         HypothesisStatus.INCONCLUSIVE: {
             "observation": (
-                "Column '{column}' was flagged for possible left-skewed "
-                "distribution, but evidence was insufficient to confirm or "
-                "refute the pattern."
+                "列 '{column}' 被标记为可能存在左偏分布，但证据不足以确认"
+                "或否定该模式。"
             ),
             "analysis": (
-                "Available metrics could not conclusively validate the "
-                "left-skew hypothesis. The distribution may be borderline."
+                "现有指标无法确定性地验证左偏假设。分布可能处于边界状态。"
             ),
             "business_impact": (
-                "Cannot determine whether low-value records are materially "
-                "distorting '{column}' averages."
+                "无法确定低值记录是否实质性扭曲了 '{column}' 的均值。"
             ),
             "recommendation": (
-                "Collect more data or manually inspect the distribution "
-                "of '{column}'."
+                "收集更多数据或手动检查 '{column}' 的分布情况。"
             ),
         },
     },
@@ -162,65 +131,56 @@ _FINDING_TEMPLATES: dict[SignalType, dict[HypothesisStatus, dict[str, str]]] = {
     SignalType.OUTLIER_DETECTED: {
         HypothesisStatus.SUPPORTED: {
             "observation": (
-                "Column '{column}' contains {outlier_count} outlier(s), "
-                "representing {outlier_ratio:.1%} of values. IQR bounds: "
-                "[{iqr_lower_bound}, {iqr_upper_bound}]."
+                "列 '{column}' 包含 {outlier_count} 个异常值，占数据总量的 "
+                "{outlier_ratio:.1%}。IQR 边界：[{iqr_lower_bound}, "
+                "{iqr_upper_bound}]。"
             ),
             "analysis": (
-                "The presence of {outlier_count} outlier(s) ({outlier_ratio:.1%} "
-                "of data) confirms unusual values exist in '{column}'. "
-                "These may reflect real business events, data entry errors, "
-                "or rare but legitimate transactions."
+                "在 '{column}' 中发现 {outlier_count} 个异常值（占比 "
+                "{outlier_ratio:.1%}），确认存在异常数据。这些异常值可能"
+                "反映真实业务事件、数据录入错误或罕见但合法的交易。"
             ),
             "business_impact": (
-                "Outliers can significantly distort aggregated metrics "
-                "(totals, averages) and lead to incorrect business decisions "
-                "if not properly handled. If the outliers represent real "
-                "events, they may indicate emerging risks or opportunities."
+                "异常值可能显著扭曲聚合指标（总计、均值），如处理不当会"
+                "导致错误业务决策。如果异常值代表真实事件，则可能预示"
+                "新兴风险或机会。"
             ),
             "recommendation": (
-                "Review the {outlier_count} outlier record(s) in '{column}' "
-                "individually. Classify each as: data error (fix), legitimate "
-                "rare event (document), or unknown (flag for monitoring). "
-                "Consider excluding outliers from baseline reporting."
+                "逐一审查 '{column}' 中的 {outlier_count} 个异常记录。"
+                "分类为：数据错误（修正）、合法罕见事件（记录）或未知"
+                "（持续监控）。考虑在基线报告中排除异常值。"
             ),
         },
         HypothesisStatus.REFUTED: {
             "observation": (
-                "Column '{column}' was flagged for outliers, but evidence "
-                "shows {outlier_count} outlier(s), which does not confirm "
-                "a meaningful anomaly pattern."
+                "列 '{column}' 被标记为可能存在异常值，但证据显示仅有 "
+                "{outlier_count} 个异常值，未确认有意义的异常模式。"
             ),
             "analysis": (
-                "The outlier detection signal was not validated by the "
-                "evidence. Any flagged values may fall within expected "
-                "bounds or represent normal variability."
+                "异常值检测信号未获证据验证。被标记的值可能落在预期范围"
+                "内，或反映正常波动。"
             ),
             "business_impact": (
-                "No confirmed outlier risk in '{column}'. Standard "
-                "reporting can proceed without special handling."
+                "'{column}' 未发现确认的异常值风险。标准报告可正常进行。"
             ),
             "recommendation": (
-                "No immediate action required. Continue monitoring "
-                "'{column}' for emerging outliers in future data loads."
+                "暂不需要采取行动。在后续数据加载中继续监控 '{column}' "
+                "是否出现新的异常值。"
             ),
         },
         HypothesisStatus.INCONCLUSIVE: {
             "observation": (
-                "Column '{column}' was flagged for possible outliers, but "
-                "evidence was insufficient to confirm or refute."
+                "列 '{column}' 被标记为可能存在异常值，但证据不足以确认"
+                "或否定。"
             ),
             "analysis": (
-                "Insufficient data or metrics to validate the outlier "
-                "signal for '{column}'."
+                "数据或指标不足以验证 '{column}' 的异常值信号。"
             ),
             "business_impact": (
-                "Cannot determine whether outliers materially affect "
-                "'{column}' metrics."
+                "无法确定异常值是否实质性影响 '{column}' 的指标。"
             ),
             "recommendation": (
-                "Collect more data or manually inspect '{column}' for "
-                "unusual values."
+                "收集更多数据或手动检查 '{column}' 中的异常值。"
             ),
         },
     },
@@ -228,64 +188,53 @@ _FINDING_TEMPLATES: dict[SignalType, dict[HypothesisStatus, dict[str, str]]] = {
     SignalType.INCREASING_TREND: {
         HypothesisStatus.SUPPORTED: {
             "observation": (
-                "Column '{column}' shows an increasing trend: changed from "
-                "{first_val} to {last_val} (growth rate: {growth_rate:.1%})."
+                "列 '{column}' 呈上升趋势：从 {first_val} 变化至 "
+                "{last_val}（增长率：{growth_rate:.1%}）。"
             ),
             "analysis": (
-                "The positive growth rate of {growth_rate:.1%} confirms an "
-                "upward trajectory in '{column}'. This trend may be driven "
-                "by organic growth, market expansion, or pricing changes."
+                "{growth_rate:.1%} 的正增长率确认 '{column}' 处于上升轨道。"
+                "该趋势可能由有机增长、市场扩张或定价变化驱动。"
             ),
             "business_impact": (
-                "Sustained growth in '{column}' is a positive signal but "
-                "requires understanding of the drivers. If growth is "
-                "concentrated in a few segments, it may not be sustainable. "
-                "If broad-based, it indicates healthy business momentum."
+                "'{column}' 的持续增长是积极信号，但需要了解驱动因素。"
+                "如果增长集中在少数细分市场，可能不可持续；如果是广泛"
+                "增长，则表明健康的业务势头。"
             ),
             "recommendation": (
-                "Decompose the growth in '{column}' by segment (region, "
-                "product, customer cohort) to identify drivers. Assess "
-                "whether the growth rate is accelerating, stable, or "
-                "decelerating."
+                "按细分维度（地区、产品、客户群）拆解 '{column}' 的增长，"
+                "识别驱动因素。评估增长率是在加速、稳定还是减速。"
             ),
         },
         HypothesisStatus.REFUTED: {
             "observation": (
-                "Column '{column}' was flagged for an increasing trend, but "
-                "the growth rate ({growth_rate:.1%}) does not confirm a "
-                "meaningful upward trajectory."
+                "列 '{column}' 被标记为可能存在上升趋势，但增长率 "
+                "({growth_rate:.1%}) 未确认有意义的上升轨迹。"
             ),
             "analysis": (
-                "The observed change in '{column}' is too small or "
-                "inconsistent to confirm a genuine increasing trend."
+                "'{column}' 中观察到的变化太小或不一致，无法确认真正的"
+                "上升趋势。"
             ),
             "business_impact": (
-                "No confirmed growth trend in '{column}'. Business "
-                "planning should not assume upward momentum in this "
-                "dimension without further evidence."
+                "'{column}' 未确认增长趋势。在没有进一步证据的情况下，"
+                "业务规划不应假设该维度存在上升势头。"
             ),
             "recommendation": (
-                "Monitor '{column}' over a longer time horizon to detect "
-                "whether a trend emerges. A single-period change may not "
-                "be indicative."
+                "在更长时间范围内监控 '{column}'，以检测趋势是否形成。"
+                "单期变化不足以作为趋势判断的依据。"
             ),
         },
         HypothesisStatus.INCONCLUSIVE: {
             "observation": (
-                "Column '{column}' was flagged for a possible increasing "
-                "trend, but evidence was insufficient to validate."
+                "列 '{column}' 被标记为可能存在上升趋势，但证据不足以验证。"
             ),
             "analysis": (
-                "Insufficient data points or metrics to confirm or refute "
-                "the increasing trend in '{column}'."
+                "数据点或指标不足以确认或否定 '{column}' 的上升趋势。"
             ),
             "business_impact": (
-                "Cannot determine whether '{column}' is genuinely trending "
-                "upward."
+                "无法确定 '{column}' 是否真正呈上升趋势。"
             ),
             "recommendation": (
-                "Collect more time-series data for '{column}' to enable "
-                "trend validation."
+                "收集更多 '{column}' 的时间序列数据以支持趋势验证。"
             ),
         },
     },
@@ -293,64 +242,54 @@ _FINDING_TEMPLATES: dict[SignalType, dict[HypothesisStatus, dict[str, str]]] = {
     SignalType.DECREASING_TREND: {
         HypothesisStatus.SUPPORTED: {
             "observation": (
-                "Column '{column}' shows a decreasing trend: changed from "
-                "{first_val} to {last_val} (change: {growth_rate:.1%})."
+                "列 '{column}' 呈下降趋势：从 {first_val} 变化至 "
+                "{last_val}（变化率：{growth_rate:.1%}）。"
             ),
             "analysis": (
-                "The negative growth rate of {growth_rate:.1%} confirms a "
-                "downward trajectory in '{column}'. This may indicate "
-                "customer churn, demand decline, competitive pressure, or "
-                "a deliberate business shift."
+                "{growth_rate:.1%} 的负增长率确认 '{column}' 处于下降轨道。"
+                "这可能表示客户流失、需求下降、竞争压力或主动业务调整。"
             ),
             "business_impact": (
-                "A sustained decline in '{column}' represents a business "
-                "risk. If the trend continues without intervention, it "
-                "may lead to significant revenue or volume loss. Early "
-                "diagnosis of the cause is critical."
+                "'{column}' 的持续下降构成业务风险。如果趋势在未加干预的"
+                "情况下持续，可能导致显著的收入或业务量损失。尽早诊断"
+                "原因至关重要。"
             ),
             "recommendation": (
-                "Investigate the drivers of decline in '{column}': break "
-                "down by segment to identify whether the decline is "
-                "broad-based or concentrated. Compare against market "
-                "benchmarks if available. Develop a retention or "
-                "turnaround plan."
+                "调查 '{column}' 下降的驱动因素：按细分维度拆解，确定"
+                "下降是广泛性的还是集中性的。如有行业基准数据，进行对比。"
+                "制定客户保留或业务扭转计划。"
             ),
         },
         HypothesisStatus.REFUTED: {
             "observation": (
-                "Column '{column}' was flagged for a decreasing trend, but "
-                "the change ({growth_rate:.1%}) does not confirm a "
-                "meaningful decline."
+                "列 '{column}' 被标记为可能存在下降趋势，但变化率 "
+                "({growth_rate:.1%}) 未确认有意义的下降。"
             ),
             "analysis": (
-                "The observed change in '{column}' is too small or "
-                "inconsistent to confirm a genuine decreasing trend."
+                "'{column}' 中观察到的变化太小或不一致，无法确认真正的"
+                "下降趋势。"
             ),
             "business_impact": (
-                "No confirmed decline in '{column}'. Business planning "
-                "should not assume negative momentum without further "
-                "evidence."
+                "'{column}' 未确认下降趋势。在没有进一步证据的情况下，"
+                "业务规划不应假设存在负面势头。"
             ),
             "recommendation": (
-                "Monitor '{column}' over a longer time horizon. A "
-                "short-term dip may not indicate a structural trend."
+                "在更长时间范围内监控 '{column}'。短期下降不一定是"
+                "结构性趋势。"
             ),
         },
         HypothesisStatus.INCONCLUSIVE: {
             "observation": (
-                "Column '{column}' was flagged for a possible decreasing "
-                "trend, but evidence was insufficient to validate."
+                "列 '{column}' 被标记为可能存在下降趋势，但证据不足以验证。"
             ),
             "analysis": (
-                "Insufficient data points or metrics to confirm or refute "
-                "the decreasing trend in '{column}'."
+                "数据点或指标不足以确认或否定 '{column}' 的下降趋势。"
             ),
             "business_impact": (
-                "Cannot determine whether '{column}' is genuinely declining."
+                "无法确定 '{column}' 是否真正在下降。"
             ),
             "recommendation": (
-                "Collect more time-series data for '{column}' to enable "
-                "trend validation."
+                "收集更多 '{column}' 的时间序列数据以支持趋势验证。"
             ),
         },
     },
@@ -358,65 +297,53 @@ _FINDING_TEMPLATES: dict[SignalType, dict[HypothesisStatus, dict[str, str]]] = {
     SignalType.HIGH_CONCENTRATION: {
         HypothesisStatus.SUPPORTED: {
             "observation": (
-                "Column '{column}' shows high concentration: the top "
-                "contributor accounts for {top_1_share:.1%} of the total, "
-                "and the top 3 account for {top_3_share:.1%}."
+                "列 '{column}' 呈高度集中：最大单一贡献者占总量的 "
+                "{top_1_share:.1%}，前 3 名合计占 {top_3_share:.1%}。"
             ),
             "analysis": (
-                "With {top_1_share:.1%} of value concentrated in a single "
-                "category, the business has significant dependency risk. "
-                "The top-3 cumulative share of {top_3_share:.1%} confirms "
-                "this is a structural pattern, not a single outlier."
+                "{top_1_share:.1%} 的价值集中在单一类别中，业务存在显著"
+                "依赖风险。前 3 名合计占比 {top_3_share:.1%} 确认这是"
+                "结构性模式，而非单一异常值。"
             ),
             "business_impact": (
-                "High concentration means business performance is heavily "
-                "dependent on a small number of entities (customers, "
-                "products, or regions). Any change affecting the top "
-                "contributor(s) would have a disproportionate impact on "
-                "overall results. This is a key business risk."
+                "高度集中意味着业务表现严重依赖少数实体（客户、产品或"
+                "地区）。任何影响头部贡献者的变化都会对整体结果产生不成"
+                "比例的影响。这是关键业务风险。"
             ),
             "recommendation": (
-                "Assess the stability and retention risk of the top "
-                "contributors in '{column}'. Develop diversification "
-                "strategies if concentration exceeds risk tolerance. "
-                "Set up early-warning monitoring for the top entities."
+                "评估 '{column}' 中头部贡献者的稳定性和流失风险。如果"
+                "集中度超出风险承受范围，制定多元化策略。为头部实体设置"
+                "预警监控。"
             ),
         },
         HypothesisStatus.REFUTED: {
             "observation": (
-                "Column '{column}' was flagged for possible concentration, "
-                "but the top contributor share ({top_1_share:.1%}) does not "
-                "confirm a meaningful concentration risk."
+                "列 '{column}' 被标记为可能存在集中风险，但头部贡献者占比"
+                "({top_1_share:.1%}) 未确认有意义的集中风险。"
             ),
             "analysis": (
-                "The concentration level in '{column}' is within acceptable "
-                "bounds. No single category dominates the distribution."
+                "'{column}' 的集中度在可接受范围内。没有单一类别主导分布。"
             ),
             "business_impact": (
-                "Business performance is reasonably diversified across "
-                "'{column}' categories. No immediate concentration risk."
+                "业务表现在 '{column}' 各维度上分布合理。暂无集中风险。"
             ),
             "recommendation": (
-                "Periodically review concentration levels in '{column}' "
-                "as the business mix evolves."
+                "随着业务组合变化，定期检查 '{column}' 的集中度。"
             ),
         },
         HypothesisStatus.INCONCLUSIVE: {
             "observation": (
-                "Column '{column}' was flagged for possible concentration, "
-                "but evidence was insufficient to validate."
+                "列 '{column}' 被标记为可能存在集中风险，但证据不足以验证。"
             ),
             "analysis": (
-                "Cannot determine the true concentration level in "
-                "'{column}' from available evidence."
+                "无法从现有证据确定 '{column}' 的真实集中度。"
             ),
             "business_impact": (
-                "Unable to assess concentration risk in '{column}'. "
-                "Decisions about diversification may be premature."
+                "无法评估 '{column}' 的集中风险。多元化决策可能为时过早。"
             ),
             "recommendation": (
-                "Collect more granular data for '{column}' or verify "
-                "category definitions before assessing concentration."
+                "收集 '{column}' 的更细粒度数据，或在评估集中度前核实"
+                "分类定义。"
             ),
         },
     },
@@ -424,65 +351,53 @@ _FINDING_TEMPLATES: dict[SignalType, dict[HypothesisStatus, dict[str, str]]] = {
     SignalType.HIGH_MISSING_RATE: {
         HypothesisStatus.SUPPORTED: {
             "observation": (
-                "Column '{column}' has a missing rate of "
-                "{null_percentage:.1f}%."
+                "列 '{column}' 的缺失率为 {null_percentage:.1f}%。"
             ),
             "analysis": (
-                "A missing rate of {null_percentage:.1f}% is materially "
-                "high and may compromise the reliability of any analysis "
-                "involving '{column}'. The missing data may be random or "
-                "systematic — the latter is more dangerous as it introduces "
-                "bias."
+                "{null_percentage:.1f}% 的缺失率显著偏高，可能影响涉及 "
+                "'{column}' 的任何分析的可靠性。缺失数据可能是随机的或"
+                "系统性的——后者更危险，因为会引入偏差。"
             ),
             "business_impact": (
-                "Conclusions drawn from '{column}' may be unreliable or "
-                "biased. If this column is used for business decisions "
-                "(e.g., revenue reporting, customer scoring), the missing "
-                "data could lead to incorrect actions."
+                "基于 '{column}' 得出的结论可能不可靠或存在偏差。如果该"
+                "列用于业务决策（如收入报告、客户评分），缺失数据可能"
+                "导致错误行动。"
             ),
             "recommendation": (
-                "Investigate the root cause of missing data in '{column}': "
-                "is it a data collection gap, a system issue, or a "
-                "legitimate 'not applicable' case? If the data is critical, "
-                "consider imputation strategies or process fixes to reduce "
-                "the missing rate."
+                "调查 '{column}' 缺失数据的根本原因：是数据收集缺失、"
+                "系统问题还是合法的「不适用」情况？如果该数据至关重要，"
+                "考虑填补策略或流程改进以降低缺失率。"
             ),
         },
         HypothesisStatus.REFUTED: {
             "observation": (
-                "Column '{column}' was flagged for a high missing rate, but "
-                "the actual rate ({null_percentage:.1f}%) is within "
-                "acceptable bounds."
+                "列 '{column}' 被标记为可能存在高缺失率，但实际缺失率"
+                "({null_percentage:.1%}%) 在可接受范围内。"
             ),
             "analysis": (
-                "The missing data rate in '{column}' is low enough that "
-                "it is unlikely to materially affect analysis results."
+                "'{column}' 的缺失率足够低，不太可能实质性影响分析结果。"
             ),
             "business_impact": (
-                "Data quality in '{column}' is adequate for business "
-                "reporting and analysis."
+                "'{column}' 的数据质量足以满足业务报告和分析需求。"
             ),
             "recommendation": (
-                "Continue monitoring '{column}' missing rate as part of "
-                "routine data quality checks."
+                "作为常规数据质量检查的一部分，持续监控 '{column}' 的"
+                "缺失率。"
             ),
         },
         HypothesisStatus.INCONCLUSIVE: {
             "observation": (
-                "Column '{column}' was flagged for a possible high missing "
-                "rate, but evidence was insufficient to validate."
+                "列 '{column}' 被标记为可能存在高缺失率，但证据不足以验证。"
             ),
             "analysis": (
-                "Cannot determine the true missing data rate or its "
-                "impact for '{column}'."
+                "无法确定 '{column}' 的真实缺失率及其影响。"
             ),
             "business_impact": (
-                "Data quality in '{column}' is uncertain. Use caution "
-                "when relying on this column for decisions."
+                "'{column}' 的数据质量不确定。依赖此列做决策时请谨慎。"
             ),
             "recommendation": (
-                "Verify the missing data calculation for '{column}' and "
-                "assess whether missing values are random or systematic."
+                "核实 '{column}' 的缺失值计算，评估缺失是随机的还是"
+                "系统性的。"
             ),
         },
     },
@@ -490,63 +405,51 @@ _FINDING_TEMPLATES: dict[SignalType, dict[HypothesisStatus, dict[str, str]]] = {
     SignalType.HIGH_CARDINALITY: {
         HypothesisStatus.SUPPORTED: {
             "observation": (
-                "Column '{column}' has {unique_count} unique values "
-                "({unique_ratio:.1%} of rows)."
+                "列 '{column}' 包含 {unique_count} 个唯一值（占行数的 "
+                "{unique_ratio:.1%}）。"
             ),
             "analysis": (
-                "With a uniqueness ratio of {unique_ratio:.1%}, '{column}' "
-                "behaves more like an identifier than a categorical "
-                "dimension. It has too many distinct values to be useful "
-                "for grouping or aggregation."
+                "唯一值比例达 {unique_ratio:.1%}，'{column}' 更像是一个"
+                "标识符而非分类维度。其不同值过多，无法有效用于分组或"
+                "聚合分析。"
             ),
             "business_impact": (
-                "'{column}' cannot be effectively used as an analytical "
-                "dimension in its current form. Attempting to group or "
-                "aggregate by this column will produce meaningless results "
-                "(one row per group)."
+                "'{column}' 在当前形式下无法有效用作分析维度。尝试按此列"
+                "分组或聚合将产生无意义的结果（每组仅一行）。"
             ),
             "recommendation": (
-                "Determine whether '{column}' is an identifier (exclude "
-                "from analysis) or should be aggregated into broader "
-                "categories. If categorical, consider binning, clustering, "
-                "or extracting higher-level groupings."
+                "判断 '{column}' 是否为标识符（应排除在分析之外），或是否"
+                "应聚合到更广泛的类别中。如果属于分类变量，考虑分箱、聚类"
+                "或提取更高层级的分组。"
             ),
         },
         HypothesisStatus.REFUTED: {
             "observation": (
-                "Column '{column}' was flagged for high cardinality, but "
-                "the uniqueness ratio ({unique_ratio:.1%}) is within "
-                "acceptable bounds."
+                "列 '{column}' 被标记为可能存在高基数，但唯一值比例"
+                "({unique_ratio:.1%}) 在可接受范围内。"
             ),
             "analysis": (
-                "'{column}' has a reasonable number of distinct values "
-                "for use as a grouping dimension."
+                "'{column}' 的不同值数量合理，可以作为分组维度使用。"
             ),
             "business_impact": (
-                "'{column}' is suitable for use as an analytical "
-                "dimension in reporting and aggregation."
+                "'{column}' 适合用作报告和聚合中的分析维度。"
             ),
             "recommendation": (
-                "No action required. '{column}' can be used normally "
-                "for grouping and segmentation."
+                "无需处理。'{column}' 可正常用于分组和细分分析。"
             ),
         },
         HypothesisStatus.INCONCLUSIVE: {
             "observation": (
-                "Column '{column}' was flagged for possible high "
-                "cardinality, but evidence was insufficient to validate."
+                "列 '{column}' 被标记为可能存在高基数，但证据不足以验证。"
             ),
             "analysis": (
-                "Cannot determine whether '{column}' uniqueness is "
-                "problematic for analytical use."
+                "无法确定 '{column}' 的唯一值数量是否会对分析使用造成问题。"
             ),
             "business_impact": (
-                "Use caution when grouping by '{column}' — results may "
-                "be overly granular."
+                "按 '{column}' 分组时请谨慎——结果可能过于细碎。"
             ),
             "recommendation": (
-                "Review the distinct values in '{column}' to determine "
-                "if binning or categorization is needed."
+                "检查 '{column}' 的不同值，判断是否需要进行分箱或归类。"
             ),
         },
     },
@@ -554,391 +457,308 @@ _FINDING_TEMPLATES: dict[SignalType, dict[HypothesisStatus, dict[str, str]]] = {
     SignalType.LOW_VARIANCE: {
         HypothesisStatus.SUPPORTED: {
             "observation": (
-                "Column '{column}' has very low variance: coefficient of "
-                "variation = {coefficient_of_variation:.2%}, "
-                "std = {std}."
+                "列 '{column}' 的方差非常低：变异系数 = "
+                "{coefficient_of_variation:.2%}，标准差 = {std}。"
             ),
             "analysis": (
-                "A coefficient of variation of {coefficient_of_variation:.2%} "
-                "indicates that '{column}' values barely deviate from the "
-                "mean. This column has almost no discriminatory power."
+                "变异系数为 {coefficient_of_variation:.2%}，表明 "
+                "'{column}' 的值几乎不偏离均值。该列几乎没有区分能力。"
             ),
             "business_impact": (
-                "'{column}' provides little analytical value — it cannot "
-                "differentiate between good and bad performers, identify "
-                "trends, or segment populations. Including it in analysis "
-                "adds noise without insight."
+                "'{column}' 提供的分析价值很低——无法区分好坏表现者、"
+                "识别趋势或细分人群。将其纳入分析只会增加噪音而没有"
+                "洞察价值。"
             ),
             "recommendation": (
-                "Consider deprioritizing or excluding '{column}' from "
-                "active analysis. If the column was expected to vary "
-                "(e.g., customer ratings, prices), investigate why it is "
-                "static — this may itself be a finding."
+                "考虑降低 '{column}' 的分析优先级或将其排除。如果该列"
+                "本应存在变化（如客户评分、价格），调查其为何保持不变"
+                "——这本身可能就是一个发现。"
             ),
         },
         HypothesisStatus.REFUTED: {
             "observation": (
-                "Column '{column}' was flagged for low variance, but the "
-                "coefficient of variation ({coefficient_of_variation:.2%}) "
-                "does not confirm a problem."
+                "列 '{column}' 被标记为可能存在低方差，但变异系数 "
+                "({coefficient_of_variation:.2%}) 未确认存在问题。"
             ),
             "analysis": (
-                "'{column}' shows sufficient variability to be analytically "
-                "useful."
+                "'{column}' 显示出足够的变异性，具有分析价值。"
             ),
             "business_impact": (
-                "'{column}' has adequate discriminatory power for "
-                "segmentation and analysis."
+                "'{column}' 具有足够的区分能力，可用于细分和分析。"
             ),
             "recommendation": (
-                "No action required. '{column}' can be used normally "
-                "in analysis."
+                "无需处理。'{column}' 可正常用于分析。"
             ),
         },
         HypothesisStatus.INCONCLUSIVE: {
             "observation": (
-                "Column '{column}' was flagged for possible low variance, "
-                "but evidence was insufficient to validate."
+                "列 '{column}' 被标记为可能存在低方差，但证据不足以验证。"
             ),
             "analysis": (
-                "Cannot determine whether '{column}' variance is "
-                "analytically adequate."
+                "无法确定 '{column}' 的方差是否足以支持分析。"
             ),
             "business_impact": (
-                "The analytical value of '{column}' is uncertain."
+                "'{column}' 的分析价值不确定。"
             ),
             "recommendation": (
-                "Collect more data or review '{column}' values manually "
-                "to assess variance."
+                "收集更多数据或手动检查 '{column}' 的值以评估其方差。"
             ),
         },
     },
 }
 
 # ---------------------------------------------------------------------------
-# Composite-hypothesis templates
-#
-# Composite hypotheses combine multiple signal types. Templates are keyed
-# by frozen set of signal types to match regardless of order.
+# Composite templates (Simplified Chinese)
 # ---------------------------------------------------------------------------
 
 _COMPOSITE_TEMPLATES: dict[frozenset[SignalType], dict[HypothesisStatus, dict[str, str]]] = {
     frozenset({SignalType.HIGH_CONCENTRATION, SignalType.RIGHT_SKEWED}): {
         HypothesisStatus.SUPPORTED: {
             "observation": (
-                "The dataset shows both high concentration and right-skewed "
-                "distribution in related dimensions. This indicates that a "
-                "small number of entities dominate business results."
+                "数据集同时呈现高度集中和右偏分布，表明少数实体主导了"
+                "业务结果。"
             ),
             "analysis": (
-                "The co-occurrence of concentration and right skew is a "
-                "strong signal of head-heavy business structure. A small "
-                "number of high-value records are disproportionately "
-                "driving aggregate metrics."
+                "集中度与右偏共现是头部集中型业务结构的强信号。少数"
+                "高值记录不成比例地驱动着聚合指标。"
             ),
             "business_impact": (
-                "The business is structurally dependent on a small number "
-                "of entities. This creates fragility — any change in the "
-                "top contributors will have outsized impact on overall "
-                "performance. Growth may also be concentrated rather than "
-                "broad-based."
+                "业务在结构上依赖少数实体。这造成了脆弱性——头部贡献者"
+                "的任何变化都会对整体表现产生巨大影响。增长可能也是集中"
+                "而非广泛分布的。"
             ),
             "recommendation": (
-                "This is a high-priority finding. Map the top contributors "
-                "and assess their stability. Develop a diversification "
-                "strategy and set up concentration monitoring as a key "
-                "risk indicator. Segment reporting should separate top "
-                "contributors from the long tail."
+                "这是高优先级发现。梳理头部贡献者并评估其稳定性。制定"
+                "多元化策略，并将集中度监控设为关键风险指标。分段报告应"
+                "将头部贡献者与长尾区分开来。"
             ),
         },
         HypothesisStatus.REFUTED: {
             "observation": (
-                "The combined concentration and right-skew pattern was "
-                "not confirmed by available evidence."
+                "集中度与右偏的组合模式未获现有证据确认。"
             ),
             "analysis": (
-                "The evidence does not support the hypothesis of combined "
-                "concentration and skew risk. The business structure may "
-                "be more balanced than initially suspected."
+                "证据不支持集中度与偏度组合风险的假设。业务结构可能比"
+                "最初判断更均衡。"
             ),
             "business_impact": (
-                "No confirmed structural dependency risk from the "
-                "concentration-skew combination."
+                "未确认集中度-偏度组合带来的结构性依赖风险。"
             ),
             "recommendation": (
-                "Re-evaluate if new data becomes available. For now, "
-                "standard monitoring is sufficient."
+                "如有新数据可用时重新评估。目前标准监控即可。"
             ),
         },
         HypothesisStatus.INCONCLUSIVE: {
             "observation": (
-                "Possible combined concentration and skew pattern, but "
-                "evidence is insufficient to confirm or refute."
+                "可能存在集中度与偏度组合模式，但证据不足以确认或否定。"
             ),
             "analysis": (
-                "Some signals suggest head-heavy structure, but evidence "
-                "is incomplete or mixed."
+                "部分信号提示存在头部集中结构，但证据不完整或矛盾。"
             ),
             "business_impact": (
-                "Potential structural dependency risk — cannot be "
-                "confirmed or ruled out."
+                "存在潜在的结构性依赖风险——无法确认或排除。"
             ),
             "recommendation": (
-                "Collect more granular data and re-run the analysis. "
-                "In the interim, review top-contributor concentration "
-                "manually."
+                "收集更细粒度的数据并重新分析。在此期间手动审查头部"
+                "贡献者的集中度。"
             ),
         },
     },
     frozenset({SignalType.HIGH_CONCENTRATION, SignalType.INCREASING_TREND}): {
         HypothesisStatus.SUPPORTED: {
             "observation": (
-                "Business growth is occurring alongside high concentration. "
-                "Growth may be driven primarily by a small number of entities."
+                "业务增长与高度集中同时存在。增长可能主要由少数实体驱动。"
             ),
             "analysis": (
-                "The combination of increasing trend and high concentration "
-                "suggests that growth is not broad-based. A few top "
-                "contributors may be responsible for most of the upward "
-                "momentum."
+                "上升趋势与高集中度的组合表明增长并非广泛分布。少数头部"
+                "贡献者可能贡献了大部分上升势头。"
             ),
             "business_impact": (
-                "Growth that depends on a few entities is fragile. If the "
-                "top contributors stall or churn, overall growth could "
-                "reverse quickly. Reported growth rates may overstate the "
-                "health of the broader business."
+                "依赖少数实体的增长是脆弱的。如果头部贡献者停滞或流失，"
+                "整体增长可能迅速逆转。报告的增长数据可能高估了业务的"
+                "整体健康程度。"
             ),
             "recommendation": (
-                "Decompose growth into contributions from top entities vs. "
-                "the rest. Assess whether the growth concentration is "
-                "increasing over time. Consider strategies to broaden "
-                "growth across the base."
+                "将增长拆解为头部实体与其余实体的贡献。评估增长集中度"
+                "是否随时间上升。考虑扩大增长基础的战略。"
             ),
         },
         HypothesisStatus.REFUTED: {
             "observation": (
-                "The combined concentration-growth pattern was not "
-                "confirmed by available evidence."
+                "集中度与增长的组合模式未获现有证据确认。"
             ),
             "analysis": (
-                "Evidence does not support the hypothesis that growth is "
-                "concentrated in a few entities."
+                "证据不支持增长集中在少数实体的假设。"
             ),
             "business_impact": (
-                "Growth appears to be reasonably distributed. No "
-                "confirmed concentration-driven growth risk."
+                "增长分布似乎合理。未确认集中度驱动的增长风险。"
             ),
             "recommendation": (
-                "Continue monitoring. Re-evaluate if concentration "
-                "metrics change."
+                "持续监控。如集中度指标发生变化，请重新评估。"
             ),
         },
         HypothesisStatus.INCONCLUSIVE: {
             "observation": (
-                "Possible growth concentration pattern, but evidence is "
-                "insufficient to validate."
+                "可能存在增长集中模式，但证据不足以验证。"
             ),
             "analysis": (
-                "Some signals suggest growth may be concentrated, but "
-                "evidence is incomplete."
+                "部分信号提示增长可能集中，但证据不完整。"
             ),
             "business_impact": (
-                "Growth quality is uncertain — cannot determine whether "
-                "growth is broad-based or narrow."
+                "增长质量不确定——无法判断增长是广泛的还是集中"
+                "在少数实体。"
             ),
             "recommendation": (
-                "Collect segment-level trend data to assess growth "
-                "distribution."
+                "收集细分维度的趋势数据以评估增长分布。"
             ),
         },
     },
     frozenset({SignalType.HIGH_CONCENTRATION, SignalType.DECREASING_TREND}): {
         HypothesisStatus.SUPPORTED: {
             "observation": (
-                "Business decline is occurring in a highly concentrated "
-                "structure. The decline may be driven by the top "
-                "contributors."
+                "业务下滑发生在高度集中的结构中。下滑可能由头部贡献者"
+                "驱动。"
             ),
             "analysis": (
-                "When high concentration coexists with a decreasing trend, "
-                "it suggests that the dominant entities are experiencing "
-                "decline, pulling overall results down. This is a "
-                "higher-risk pattern than broad-based decline."
+                "当高集中度与下降趋势共存时，表明主导实体正在经历衰退，"
+                "从而拉低整体结果。这是比广泛性下降风险更高的模式。"
             ),
             "business_impact": (
-                "The business faces a dual risk: dependency on a few "
-                "entities AND those entities are declining. If the trend "
-                "continues, the impact will be magnified by the "
-                "concentration. This warrants urgent attention."
+                "业务面临双重风险：依赖少数实体，而这些实体正在衰退。"
+                "如果趋势持续，集中度将放大影响。这需要紧急关注。"
             ),
             "recommendation": (
-                "Prioritize retention and turnaround efforts for the top "
-                "declining entities. Simultaneously, accelerate "
-                "diversification to reduce dependency. Set up real-time "
-                "monitoring for the top contributors."
+                "优先对头部衰退实体的保留和扭转工作。同时加速多元化以"
+                "减少依赖。为头部贡献者设置实时监控。"
             ),
         },
         HypothesisStatus.REFUTED: {
             "observation": (
-                "The combined concentration-decline pattern was not "
-                "confirmed by available evidence."
+                "集中度与下降的组合模式未获现有证据确认。"
             ),
             "analysis": (
-                "Evidence does not support the hypothesis that decline is "
-                "concentrated in top entities."
+                "证据不支持下降集中在头部实体的假设。"
             ),
             "business_impact": (
-                "The observed decline may be broad-based rather than "
-                "driven by top-entity weakness."
+                "观察到的下降可能是广泛性的，而非由头部实体疲弱驱动。"
             ),
             "recommendation": (
-                "Investigate decline drivers across all segments, not "
-                "just top entities."
+                "调查所有细分维度的下降驱动因素，而非仅关注头部实体。"
             ),
         },
         HypothesisStatus.INCONCLUSIVE: {
             "observation": (
-                "Possible concentration-driven decline, but evidence is "
-                "insufficient to validate."
+                "可能存在集中度驱动的下降，但证据不足以验证。"
             ),
             "analysis": (
-                "Signals suggest top-entity decline risk, but evidence "
-                "is incomplete."
+                "信号提示存在头部实体衰退风险，但证据不完整。"
             ),
             "business_impact": (
-                "Risk of concentrated decline cannot be confirmed or "
-                "ruled out."
+                "集中性衰退风险无法确认或排除。"
             ),
             "recommendation": (
-                "Collect entity-level trend data to assess whether "
-                "decline is concentrated."
+                "收集实体级别的趋势数据以评估下降是否集中。"
             ),
         },
     },
     frozenset({SignalType.OUTLIER_DETECTED, SignalType.RIGHT_SKEWED}): {
         HypothesisStatus.SUPPORTED: {
             "observation": (
-                "Outliers and right-skewed distribution are present "
-                "together, suggesting extreme high values are distorting "
-                "overall statistics."
+                "异常值和右偏分布同时存在，表明极端高值正在扭曲整体"
+                "统计数据。"
             ),
             "analysis": (
-                "The combination of detected outliers and right skew "
-                "indicates that extreme values are not just present but "
-                "materially affecting the data distribution. These "
-                "outliers are likely the cause of the observed skew."
+                "异常值与右偏的组合表明极端值不仅存在，而且正在实质性"
+                "影响数据分布。这些异常值很可能是观察到的偏度的原因。"
             ),
             "business_impact": (
-                "Reported averages and totals may be significantly "
-                "inflated by a small number of extreme records. Business "
-                "decisions based on these aggregates may be overly "
-                "optimistic. The 'typical' performance is likely lower "
-                "than reported means suggest."
+                "报告的均值和总额可能被少数极端记录显著夸大。基于这些"
+                "聚合指标的业务决策可能过于乐观。「典型」表现很可能低于"
+                "报告均值所显示的水平。"
             ),
             "recommendation": (
-                "Review the outlier records individually. Determine "
-                "whether they are legitimate (keep and document), errors "
-                "(correct or remove), or one-time events (exclude from "
-                "baseline). Recompute key metrics with and without "
-                "outliers to quantify the distortion."
+                "逐一审查异常记录。确定它们是合法的（保留并记录）、"
+                "错误的（更正或删除）还是一次性事件（从基线中排除）。"
+                "重新计算包含和不包含异常值的关键指标，量化扭曲程度。"
             ),
         },
         HypothesisStatus.REFUTED: {
             "observation": (
-                "The combined outlier-skew pattern was not confirmed by "
-                "available evidence."
+                "异常值与偏度的组合模式未获现有证据确认。"
             ),
             "analysis": (
-                "Evidence does not support a material distortion from "
-                "extreme values."
+                "证据不支持极端值造成实质性扭曲。"
             ),
             "business_impact": (
-                "Reported statistics are likely representative of the "
-                "underlying business reality."
+                "报告的统计数据可能代表了真实的业务状况。"
             ),
             "recommendation": (
-                "No immediate action required. Standard outlier "
-                "monitoring is sufficient."
+                "暂不需要采取行动。标准异常值监控即可。"
             ),
         },
         HypothesisStatus.INCONCLUSIVE: {
             "observation": (
-                "Possible outlier-driven skew, but evidence is "
-                "insufficient to validate."
+                "可能存在异常值驱动的偏度，但证据不足以验证。"
             ),
             "analysis": (
-                "Outlier and skew signals are present but evidence "
-                "is incomplete or mixed."
+                "异常值和偏度信号存在，但证据不完整或矛盾。"
             ),
             "business_impact": (
-                "Cannot determine whether extreme values materially "
-                "distort business metrics."
+                "无法确定极端值是否实质性扭曲了业务指标。"
             ),
             "recommendation": (
-                "Manually review flagged outlier records to assess "
-                "their business significance."
+                "手动审查被标记的异常记录，评估其业务重要性。"
             ),
         },
     },
     frozenset({SignalType.HIGH_MISSING_RATE, SignalType.OUTLIER_DETECTED}): {
         HypothesisStatus.SUPPORTED: {
             "observation": (
-                "High missing data rates and outliers are present in "
-                "the same dataset, suggesting data quality issues may "
-                "be affecting analytical reliability."
+                "同一数据集中同时存在高缺失率和异常值，表明数据质量问题"
+                "可能正在影响分析可靠性。"
             ),
             "analysis": (
-                "The co-occurrence of missing data and outliers is a "
-                "red flag for data quality. Missing values may be "
-                "creating artificial outliers, or the same underlying "
-                "process issues may be causing both problems."
+                "缺失数据与异常值共现是数据质量的红旗信号。缺失值可能"
+                "在制造人为异常值，或者相同的潜在流程问题可能同时导致"
+                "了这两种现象。"
             ),
             "business_impact": (
-                "Analysis results may be unreliable due to compounding "
-                "data quality issues. Decisions based on this data carry "
-                "elevated risk of being incorrect. The root cause may "
-                "be a systemic data collection or processing problem."
+                "由于复合数据质量问题，分析结果可能不可靠。基于此数据"
+                "的决策存在较高的出错风险。根本原因可能是系统性的数据"
+                "收集或处理问题。"
             ),
             "recommendation": (
-                "Prioritize a data quality review. Investigate whether "
-                "the missing data and outliers share a common cause "
-                "(e.g., system errors, process gaps). Address data "
-                "quality before drawing business conclusions from "
-                "affected columns."
+                "优先进行数据质量审查。调查缺失数据和异常值是否共享"
+                "共同原因（如系统错误、流程缺陷）。在从受影响列得出"
+                "业务结论之前，先解决数据质量问题。"
             ),
         },
         HypothesisStatus.REFUTED: {
             "observation": (
-                "The combined data-quality risk pattern was not "
-                "confirmed by available evidence."
+                "复合数据质量风险模式未获现有证据确认。"
             ),
             "analysis": (
-                "Evidence does not support the hypothesis of compounding "
-                "data quality issues."
+                "证据不支持存在复合数据质量问题的假设。"
             ),
             "business_impact": (
-                "Data quality appears adequate for reliable analysis."
+                "数据质量似乎足以支撑可靠的分析。"
             ),
             "recommendation": (
-                "Continue routine data quality monitoring."
+                "继续进行常规数据质量监控。"
             ),
         },
         HypothesisStatus.INCONCLUSIVE: {
             "observation": (
-                "Possible compounding data quality issues, but evidence "
-                "is insufficient to validate."
+                "可能存在复合数据质量问题，但证据不足以验证。"
             ),
             "analysis": (
-                "Missing data and outlier signals exist but cannot be "
-                "conclusively linked."
+                "缺失数据和异常值信号存在，但无法确定性地关联。"
             ),
             "business_impact": (
-                "Data reliability is uncertain — use caution in "
-                "business decisions based on affected columns."
+                "数据可靠性不确定——在基于受影响列做出业务决策时请谨慎。"
             ),
             "recommendation": (
-                "Conduct a manual data quality assessment of the "
-                "affected columns."
+                "对受影响列进行人工数据质量评估。"
             ),
         },
     },
@@ -950,7 +770,6 @@ _COMPOSITE_TEMPLATES: dict[frozenset[SignalType], dict[HypothesisStatus, dict[st
 # ---------------------------------------------------------------------------
 
 def _build_context(vh: ValidatedHypothesis) -> dict:
-    """Extract format placeholders from a validated hypothesis's evidence."""
     ctx: dict = {}
     all_evidence = (
         vh.supporting_evidence + vh.contradicting_evidence + vh.neutral_evidence
@@ -967,11 +786,9 @@ def _build_context(vh: ValidatedHypothesis) -> dict:
 
 
 def _format_template(template: str, ctx: dict) -> str:
-    """Safely format a template string with context values."""
     try:
         return template.format(**ctx)
     except (KeyError, ValueError):
-        # Fall back to unformatted template if placeholders are missing
         return template
 
 
@@ -980,14 +797,12 @@ def _format_template(template: str, ctx: dict) -> str:
 # ---------------------------------------------------------------------------
 
 def _build_simple_finding(vh: ValidatedHypothesis) -> Finding:
-    """Build a Finding for a non-composite hypothesis."""
     signal_type = vh.hypothesis.supporting_signals[0]
     status = vh.status
     ctx = _build_context(vh)
 
     templates = _FINDING_TEMPLATES.get(signal_type, {}).get(status)
     if templates is None:
-        # Fallback for any uncovered combination
         return Finding(
             title=vh.hypothesis.title,
             observation=f"{vh.hypothesis.description}",
@@ -995,9 +810,9 @@ def _build_simple_finding(vh: ValidatedHypothesis) -> Finding:
             confidence=vh.adjusted_confidence,
             supporting_evidence=vh.supporting_evidence,
             contradicting_evidence=vh.contradicting_evidence,
-            analysis="No detailed analysis template available for this finding.",
-            business_impact="Business impact could not be assessed automatically.",
-            recommendation="Manual review recommended.",
+            analysis="该发现暂无详细分析模板。",
+            business_impact="无法自动评估业务影响。",
+            recommendation="建议人工审查。",
         )
 
     return Finding(
@@ -1014,24 +829,22 @@ def _build_simple_finding(vh: ValidatedHypothesis) -> Finding:
 
 
 def _build_composite_finding(vh: ValidatedHypothesis) -> Finding:
-    """Build a Finding for a composite hypothesis."""
     signal_key = frozenset(vh.hypothesis.supporting_signals)
     status = vh.status
     ctx = _build_context(vh)
 
     composite = _COMPOSITE_TEMPLATES.get(signal_key, {}).get(status)
     if composite is None:
-        # Fallback
         return Finding(
             title=vh.hypothesis.title,
-            observation=f"Combined signal pattern detected: {', '.join(s.value for s in vh.hypothesis.supporting_signals)}.",
+            observation=f"检测到组合信号模式：{', '.join(s.value for s in vh.hypothesis.supporting_signals)}。",
             status=status,
             confidence=vh.adjusted_confidence,
             supporting_evidence=vh.supporting_evidence,
             contradicting_evidence=vh.contradicting_evidence,
-            analysis="No detailed analysis template available for this composite finding.",
-            business_impact="Business impact could not be assessed automatically.",
-            recommendation="Manual review of combined signals recommended.",
+            analysis="该组合发现暂无详细分析模板。",
+            business_impact="无法自动评估业务影响。",
+            recommendation="建议对组合信号进行人工审查。",
         )
 
     return Finding(
@@ -1048,7 +861,6 @@ def _build_composite_finding(vh: ValidatedHypothesis) -> Finding:
 
 
 def _build_finding(vh: ValidatedHypothesis) -> Finding:
-    """Dispatch to simple or composite builder based on hypothesis type."""
     if vh.hypothesis.is_composite:
         return _build_composite_finding(vh)
     return _build_simple_finding(vh)
@@ -1128,22 +940,10 @@ def generate_report(
     profile: DatasetProfile,
     dataset_summary: dict,
 ) -> InvestigationReport:
-    """Generate a business-facing Investigation Report.
-
-    Args:
-        validation_report: Validated hypotheses with evidence classification.
-        profile: Dataset profile with column metadata.
-        dataset_summary: Output from analyze_dataframe().
-
-    Returns:
-        A structured InvestigationReport ready for analyst review or
-        Phase 7 LLM narrative generation.
-    """
     findings = [
         _build_finding(vh) for vh in validation_report.validated
     ]
 
-    # Collect unique recommendations as next steps
     seen: set[str] = set()
     next_steps: list[str] = []
     for f in findings:

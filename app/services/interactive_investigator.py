@@ -1,25 +1,8 @@
-"""Interactive investigation engine — Phase 8.
+"""Interactive investigation engine — Phase 8 (Simplified Chinese).
 
 Consumes the deterministic InvestigationReport and produces a forward-looking
 InteractiveInvestigationReport: follow-up questions, data gaps, guided
 investigation paths, and unresolved areas.
-
-Architecture
-------------
-This module sits at the END of the pipeline, after report generation and
-narrative generation.  It answers the question: "What should I investigate
-next?"
-
-Like the question generator (Phase 4), it uses template-driven logic rather
-than LLM calls.  This keeps the output deterministic and explainable.
-Future phases may add an LLM-powered variant behind a shared interface.
-
-Design principles:
-- Every follow-up question links back to a finding in the report.
-- Data gaps describe data the analyst DOES NOT HAVE — distinct from
-  missing values IN the existing dataset.
-- Investigation paths are step-by-step and executable without further
-  guidance.
 """
 
 from app.models.enums import SignalType, HypothesisStatus
@@ -33,635 +16,393 @@ from app.schemas.interactive import (
 
 
 # ---------------------------------------------------------------------------
-# Follow-up question templates — one entry per SignalType
-#
-# Each entry maps a finding STATUS to one or more follow-up questions with
-# category and required-data hints.
+# Follow-up question templates (zh-CN)
 # ---------------------------------------------------------------------------
 
 _DRILL_DOWN_TEMPLATES: dict[SignalType, list[dict]] = {
     SignalType.RIGHT_SKEWED: [
         {
-            "question": (
-                "Which specific records or segments are pulling the "
-                "average above the median in '{column}'?"
-            ),
+            "question": "哪些具体记录或细分群体将 '{column}' 的均值拉高至中位数之上？",
             "category": "drill_down",
             "required_data": [],
         },
         {
-            "question": (
-                "Is the right skew in '{column}' consistent over time, "
-                "or does it vary by period?"
-            ),
+            "question": "'{column}' 的右偏在不同时间段是否一致，还是随时间变化？",
             "category": "drill_down",
-            "required_data": ["time-series breakdown of {column}"],
+            "required_data": ["{column} 的时间序列细分数据"],
         },
         {
-            "question": (
-                "What percentage of total '{column}' value is contributed "
-                "by the top 5% of records?"
-            ),
+            "question": "'{column}' 前 5% 的记录贡献了总价值的百分之多少？",
             "category": "drill_down",
             "required_data": [],
         },
     ],
     SignalType.LEFT_SKEWED: [
         {
-            "question": (
-                "Which specific records or segments are pulling the "
-                "average below the median in '{column}'?"
-            ),
+            "question": "哪些具体记录或细分群体将 '{column}' 的均值拉低至中位数之下？",
             "category": "drill_down",
             "required_data": [],
         },
         {
-            "question": (
-                "Do the low-value records in '{column}' represent data "
-                "errors, special cases, or systematic underperformance?"
-            ),
+            "question": "'{column}' 中的低值记录是数据错误、特殊情况还是系统性低绩效？",
             "category": "drill_down",
-            "required_data": ["operational metadata for {column}"],
+            "required_data": ["{column} 的业务元数据"],
         },
     ],
     SignalType.OUTLIER_DETECTED: [
         {
-            "question": (
-                "Do the outliers in '{column}' correlate with specific "
-                "categories, regions, or time periods?"
-            ),
+            "question": "'{column}' 中的异常值是否与特定类别、地区或时间段相关？",
             "category": "drill_down",
             "required_data": [],
         },
         {
-            "question": (
-                "Are the outliers in '{column}' data entry errors, or "
-                "do they represent legitimate business events?"
-            ),
+            "question": "'{column}' 中的异常值是数据录入错误还是真实的业务事件？",
             "category": "drill_down",
-            "required_data": [
-                "transaction-level detail or audit logs for {column}"
-            ],
+            "required_data": ["{column} 的交易级明细或审计日志"],
         },
         {
-            "question": (
-                "How do key metrics change when outliers in '{column}' "
-                "are excluded — are conclusions materially different?"
-            ),
+            "question": "排除 '{column}' 中的异常值后，关键指标和结论是否有实质性变化？",
             "category": "drill_down",
             "required_data": [],
         },
     ],
     SignalType.HIGH_CONCENTRATION: [
         {
-            "question": (
-                "Who are the top contributors in '{column}' and what is "
-                "their retention risk?"
-            ),
+            "question": "'{column}' 中排名靠前的贡献者是谁？他们的流失风险有多高？",
             "category": "drill_down",
-            "required_data": [
-                "entity-level profiles for top values in {column}",
-                "historical retention/churn data",
-            ],
+            "required_data": ["{column} 的实体级档案", "历史留存/流失数据"],
         },
         {
-            "question": (
-                "Has the concentration in '{column}' been increasing or "
-                "decreasing over time?"
-            ),
+            "question": "'{column}' 的集中度是在持续上升还是下降？",
             "category": "drill_down",
-            "required_data": ["time-series of concentration metric"],
+            "required_data": ["集中度指标的时间序列数据"],
         },
         {
-            "question": (
-                "Is the concentration in '{column}' structural "
-                "(consistent across all segments) or driven by one "
-                "specific segment?"
-            ),
+            "question": "'{column}' 的集中是结构性的（所有细分群体一致）还是由某一特定细分群体驱动的？",
             "category": "drill_down",
             "required_data": [],
         },
     ],
     SignalType.INCREASING_TREND: [
         {
-            "question": (
-                "Is the growth in '{column}' broad-based or concentrated "
-                "in a small number of segments?"
-            ),
+            "question": "'{column}' 的增长是广泛分布在多个细分群体，还是集中在少数群体中？",
             "category": "drill_down",
             "required_data": [],
         },
         {
-            "question": (
-                "What is driving the growth in '{column}' — new customers, "
-                "higher prices, or increased volume per customer?"
-            ),
+            "question": "是什么在驱动 '{column}' 的增长——新客户获取、价格上涨还是单客消费增加？",
             "category": "drill_down",
-            "required_data": [
-                "customer-level transaction data",
-                "pricing history",
-            ],
+            "required_data": ["客户级交易数据", "定价历史"],
         },
         {
-            "question": (
-                "Is the growth rate in '{column}' accelerating, stable, "
-                "or decelerating?"
-            ),
+            "question": "'{column}' 的增长率是在加速、稳定还是减速？",
             "category": "drill_down",
-            "required_data": ["longer time-series for {column}"],
+            "required_data": ["{column} 的更长时间序列数据"],
         },
     ],
     SignalType.DECREASING_TREND: [
         {
-            "question": (
-                "Is the decline in '{column}' broad-based or concentrated "
-                "in specific segments, products, or regions?"
-            ),
+            "question": "'{column}' 的下降是广泛性的还是集中在特定细分群体、产品或地区？",
             "category": "drill_down",
             "required_data": [],
         },
         {
-            "question": (
-                "Is the decline in '{column}' a recent development or "
-                "part of a longer-term trend?"
-            ),
+            "question": "'{column}' 的下降是近期才出现的还是长期趋势的一部分？",
             "category": "drill_down",
-            "required_data": ["longer time-series for {column}"],
+            "required_data": ["{column} 的更长时间序列数据"],
         },
         {
-            "question": (
-                "Have any external events (market changes, competitive "
-                "actions, policy shifts) coincided with the decline in "
-                "'{column}'?"
-            ),
+            "question": "是否有外部事件（市场变化、竞争行为、政策调整）与 '{column}' 的下降时间吻合？",
             "category": "data_gap",
-            "required_data": [
-                "external market data",
-                "competitive intelligence",
-            ],
+            "required_data": ["外部市场数据", "竞争情报"],
         },
     ],
     SignalType.HIGH_MISSING_RATE: [
         {
-            "question": (
-                "Is the missing data in '{column}' random or systematic "
-                "(e.g., concentrated in specific time periods, regions, "
-                "or categories)?"
-            ),
+            "question": "'{column}' 的缺失数据是随机的还是系统性的（例如集中在特定时间段、地区或类别）？",
             "category": "drill_down",
             "required_data": [],
         },
         {
-            "question": (
-                "What process or system gap is causing the missing data "
-                "in '{column}'?"
-            ),
+            "question": "是什么流程或系统缺陷导致了 '{column}' 的数据缺失？",
             "category": "data_gap",
-            "required_data": [
-                "data collection process documentation",
-                "system logs",
-            ],
+            "required_data": ["数据采集流程文档", "系统日志"],
         },
     ],
     SignalType.HIGH_CARDINALITY: [
         {
-            "question": (
-                "Can '{column}' be aggregated into fewer, more meaningful "
-                "categories for analysis?"
-            ),
+            "question": "能否将 '{column}' 聚合为更少、更有意义的分组用于分析？",
             "category": "drill_down",
             "required_data": [],
         },
         {
-            "question": (
-                "Does '{column}' contain duplicate or near-duplicate "
-                "values that should be consolidated?"
-            ),
+            "question": "'{column}' 是否包含应合并的重复值或近似重复值？",
             "category": "drill_down",
             "required_data": [],
         },
     ],
     SignalType.LOW_VARIANCE: [
         {
-            "question": (
-                "Is the low variance in '{column}' expected (e.g., a "
-                "fixed-price product) or does it indicate a data quality "
-                "issue (e.g., default values, capped measurements)?"
-            ),
+            "question": "'{column}' 的低方差是预期内的（如固定价格产品）还是数据质量问题（如默认值、截断值）？",
             "category": "drill_down",
-            "required_data": ["business context for {column}"],
+            "required_data": ["{column} 的业务背景信息"],
         },
         {
-            "question": (
-                "Are there related metrics with higher variance that "
-                "could serve as better analytical dimensions than "
-                "'{column}'?"
-            ),
+            "question": "是否存在方差更高且能更好地替代 '{column}' 的相关指标？",
             "category": "drill_down",
-            "required_data": ["additional related metrics"],
+            "required_data": ["其他相关指标"],
         },
     ],
 }
 
 # ---------------------------------------------------------------------------
-# Data gap recommendations — what data the analyst should seek
+# Data gap recommendations (zh-CN)
 # ---------------------------------------------------------------------------
 
 _DATA_GAP_TEMPLATES: dict[SignalType, list[dict]] = {
     SignalType.HIGH_CONCENTRATION: [
         {
-            "gap": "Customer or entity segmentation data (size, industry, tenure, segment)",
-            "impact": (
-                "Cannot determine whether concentration is healthy "
-                "(large, stable entities) or risky (small number of "
-                "potentially volatile entities)."
-            ),
-            "suggested_source": "CRM system, customer master data",
+            "gap": "客户或实体细分数据（规模、行业、年限、细分市场）",
+            "impact": "无法判断集中度是健康的（大型稳定实体）还是危险的（少数可能不稳定的实体）。",
+            "suggested_source": "CRM 系统、客户主数据",
         },
         {
-            "gap": "Historical concentration trend data (prior periods)",
-            "impact": (
-                "Cannot assess whether concentration is improving "
-                "(diversifying) or worsening (narrowing)."
-            ),
-            "suggested_source": "Historical financial reports, data warehouse",
+            "gap": "历史集中度趋势数据（往期数据）",
+            "impact": "无法评估集中度是在改善（分散化）还是恶化（更加集中）。",
+            "suggested_source": "历史财务报告、数据仓库",
         },
     ],
     SignalType.RIGHT_SKEWED: [
         {
-            "gap": "Segment-level breakdowns for the top entities",
-            "impact": (
-                "Cannot distinguish between a few large but stable "
-                "contributors and unsustainable one-off spikes."
-            ),
-            "suggested_source": "Transaction-level data, entity profiles",
+            "gap": "头部实体的细分维度数据",
+            "impact": "无法区分少数但稳定的大型贡献者与不可持续的一次性高峰。",
+            "suggested_source": "交易级数据、实体档案",
         },
     ],
     SignalType.OUTLIER_DETECTED: [
         {
-            "gap": "Operational metadata or audit logs for flagged records",
-            "impact": (
-                "Cannot determine whether outliers are data errors "
-                "(fixable) or legitimate rare events (must be monitored)."
-            ),
-            "suggested_source": "Data entry system, operational database",
+            "gap": "被标记记录的业务元数据或审计日志",
+            "impact": "无法判断异常值是数据错误（可修复）还是合法的罕见事件（需监控）。",
+            "suggested_source": "数据录入系统、业务数据库",
         },
     ],
     SignalType.DECREASING_TREND: [
         {
-            "gap": "External benchmarks or market data for the same period",
-            "impact": (
-                "Cannot determine whether the decline is company-specific "
-                "or an industry-wide trend."
-            ),
-            "suggested_source": "Industry reports, market intelligence",
+            "gap": "同期的外部基准或市场数据",
+            "impact": "无法判断下降是公司特有现象还是行业普遍趋势。",
+            "suggested_source": "行业报告、市场情报",
         },
         {
-            "gap": "Customer churn or retention data",
-            "impact": (
-                "Cannot determine whether the decline is due to customer "
-                "loss, reduced spend per customer, or fewer new customers."
-            ),
-            "suggested_source": "CRM system, customer analytics platform",
+            "gap": "客户流失或留存数据",
+            "impact": "无法判断下降是由于客户流失、客单价降低还是新客户减少。",
+            "suggested_source": "CRM 系统、客户分析平台",
         },
     ],
     SignalType.INCREASING_TREND: [
         {
-            "gap": "Market share or competitive benchmarking data",
-            "impact": (
-                "Cannot determine whether growth represents share gain "
-                "or is simply riding market tailwinds."
-            ),
-            "suggested_source": "Industry reports, market intelligence",
+            "gap": "市场份额或竞争对手基准数据",
+            "impact": "无法判断增长是市场份额的提升还是仅仅伴随市场红利。",
+            "suggested_source": "行业报告、市场情报",
         },
     ],
     SignalType.HIGH_MISSING_RATE: [
         {
-            "gap": "Data collection process documentation or system logs",
-            "impact": (
-                "Cannot determine whether missing data is a system issue "
-                "(fixable with engineering) or a process issue (requires "
-                "workflow change)."
-            ),
-            "suggested_source": "Engineering team, data pipeline documentation",
+            "gap": "数据采集流程文档或系统日志",
+            "impact": "无法判断数据缺失是系统问题（可通过工程修复）还是流程问题（需要工作流改进）。",
+            "suggested_source": "工程团队、数据管道文档",
         },
     ],
     SignalType.LOW_VARIANCE: [
         {
-            "gap": "Additional related metrics for the same dimension",
-            "impact": (
-                "A low-variance column has limited analytical value.  "
-                "Without correlated alternative metrics, this dimension "
-                "cannot contribute to the investigation."
-            ),
-            "suggested_source": "Business team, domain experts",
+            "gap": "同一维度的其他相关指标",
+            "impact": "低方差列的分析价值有限。没有关联的替代指标，该维度无法为调查提供有效贡献。",
+            "suggested_source": "业务团队、领域专家",
         },
     ],
     SignalType.HIGH_CARDINALITY: [
         {
-            "gap": "Hierarchical categorisation or taxonomy for the column",
-            "impact": (
-                "Cannot aggregate the column into analysis-ready groupings "
-                "without a defined hierarchy."
-            ),
-            "suggested_source": "Data governance team, business glossary",
+            "gap": "该列的层级分类或业务分类体系",
+            "impact": "没有定义的层级结构，无法将该列聚合为可供分析的分组。",
+            "suggested_source": "数据治理团队、业务术语表",
         },
     ],
     SignalType.LEFT_SKEWED: [
         {
-            "gap": "Operational context for low-value records",
-            "impact": (
-                "Cannot determine whether low values represent "
-                "underperformance, special pricing, or measurement errors."
-            ),
-            "suggested_source": "Operations team, pricing database",
+            "gap": "低值记录的业务背景信息",
+            "impact": "无法判断低值是反映绩效不佳、特殊定价还是测量误差。",
+            "suggested_source": "运营团队、定价数据库",
         },
     ],
 }
 
 # ---------------------------------------------------------------------------
-# Investigation path templates — step-by-step guided exploration
+# Investigation path templates (zh-CN)
 # ---------------------------------------------------------------------------
 
 _PATH_TEMPLATES: dict[SignalType, dict] = {
     SignalType.HIGH_CONCENTRATION: {
-        "title": "Investigate concentration risk in {column}",
-        "description": (
-            "Map the entities driving concentration in '{column}', assess "
-            "their stability, and evaluate diversification options."
-        ),
+        "title": "调查 {column} 的集中度风险",
+        "description": "梳理驱动 '{column}' 集中的实体，评估其稳定性，并探索多元化方案。",
         "steps": [
-            "Identify the top 5-10 contributors in '{column}' by share of total.",
-            "Profile each top contributor: how long have they been top "
-            "contributors?  Has their share been growing or shrinking?",
-            "Calculate the Herfindahl-Hirschman Index (HHI) for "
-            "'{column}' to quantify concentration level objectively.",
-            "Segment '{column}' values by size decile and analyse "
-            "concentration within each decile.",
-            "Estimate the revenue / value impact if the top contributor "
-            "were to churn completely.",
-            "Develop a monitoring dashboard that tracks concentration "
-            "monthly with alerts if it exceeds thresholds.",
+            "识别 '{column}' 中占总份额前 5-10 名的贡献者。",
+            "分析每个头部贡献者：他们位居前列多久了？份额是在增长还是收缩？",
+            "计算 '{column}' 的赫芬达尔指数（HHI），客观量化集中度水平。",
+            "按规模十分位对 '{column}' 进行分段，分析各段的集中度。",
+            "估算如果头部贡献者完全流失，对收入/价值的影响。",
+            "建立月度集中度监控看板，超过阈值时发出预警。",
         ],
     },
     SignalType.DECREASING_TREND: {
-        "title": "Diagnose the decline in {column}",
-        "description": (
-            "Decompose the declining trend in '{column}' to identify the "
-            "root drivers — is it customer loss, reduced spend, or "
-            "something else?"
-        ),
+        "title": "诊断 {column} 的下降原因",
+        "description": "拆解 '{column}' 的下降趋势，识别根本驱动因素——是客户流失、消费减少还是其他原因？",
         "steps": [
-            "Break down '{column}' trend by the primary categorical "
-            "dimensions (region, product, segment) to isolate where "
-            "the decline is happening.",
-            "Decompose the change into: (a) change in number of "
-            "transactions/customers, (b) change in value per transaction.",
-            "Compare the decline rate against prior periods — is it "
-            "accelerating or stabilising?",
-            "If customer-level data is available, segment customers "
-            "into: growing, flat, declining, and churned.  Quantify each.",
-            "Interview stakeholders in the affected business areas to "
-            "validate the quantitative findings with qualitative context.",
-            "Build a recovery scenario model: what would it take to "
-            "return '{column}' to the prior level?",
+            "按主要分类维度（地区、产品、细分市场）拆分 '{column}' 趋势，定位下降发生在哪些群体。",
+            "将变化拆解为：(a) 交易/客户数量变化，(b) 单笔交易价值变化。",
+            "将下降速度与历史时期比较——是在加速还是趋于稳定？",
+            "如有客户级数据，将客户分为：增长、持平、下降、流失。量化各类占比。",
+            "与相关业务领域的人员沟通，用定性背景验证定量发现。",
+            "建立恢复情景模型：需要什么条件才能使 '{column}' 回到之前的水平？",
         ],
     },
     SignalType.INCREASING_TREND: {
-        "title": "Understand the growth drivers in {column}",
-        "description": (
-            "Decompose the growth in '{column}' to understand whether "
-            "it is sustainable, broad-based, and high-quality."
-        ),
+        "title": "理解 {column} 的增长驱动因素",
+        "description": "拆解 '{column}' 的增长，理解其是否可持续、是否广泛、是否高质量。",
         "steps": [
-            "Decompose growth into: new customer acquisition, increased "
-            "spend per existing customer, and price changes.",
-            "Identify which segments (region, product, category) are "
-            "driving the growth — is it broad or narrow?",
-            "Calculate customer cohort retention: are new customers "
-            "staying or is growth driven by one-time purchasers?",
-            "Compare growth rate against market / industry benchmarks "
-            "if available.",
-            "Assess whether the growth is profitable: is the marginal "
-            "cost of the growth sustainable?",
-            "Set up leading indicators to detect if growth begins to "
-            "slow before it appears in aggregate metrics.",
+            "将增长拆解为：新客户获取、现有客户消费增加和价格变动。",
+            "识别哪些细分群体（地区、产品、类别）在驱动增长——是广泛还是集中？",
+            "计算客户群留存率：新客户是否留存，还是增长由一次性购买者驱动？",
+            "如有行业基准数据，将增长率与市场平均水平进行对比。",
+            "评估增长是否盈利：增长的边际成本是否可持续？",
+            "设置先行指标，在增长放缓反映到聚合指标之前及时发现。",
         ],
     },
     SignalType.OUTLIER_DETECTED: {
-        "title": "Investigate outlier records in {column}",
-        "description": (
-            "Review the outlier records in '{column}' to classify them "
-            "and determine whether they should be excluded, monitored, "
-            "or investigated further."
-        ),
+        "title": "调查 {column} 中的异常记录",
+        "description": "审查 '{column}' 中的异常记录，分类并确定应排除、监控还是进一步调查。",
         "steps": [
-            "Extract all records where '{column}' falls outside the "
-            "IQR bounds.",
-            "For each outlier, check: what entity, what time period, "
-            "what other characteristics?  Look for patterns.",
-            "Classify each outlier: (A) data error — fix the source, "
-            "(B) legitimate rare event — document and monitor, "
-            "(C) unknown — flag for manual review.",
-            "Recompute key aggregate metrics (mean, total, trend) with "
-            "and without outliers.  Quantify the distortion.",
-            "If outliers represent legitimate business events, create a "
-            "separate monitoring process for them.",
+            "提取 '{column}' 中所有超出 IQR 边界的记录。",
+            "对每个异常值，检查：属于哪个实体、哪个时间段、有哪些其他特征？寻找规律。",
+            "将每个异常值分类：(A) 数据错误——修复源头，(B) 合法罕见事件——记录并监控，(C) 未知——标记为待人工审查。",
+            "分别计算包含和不包含异常值的关键聚合指标（均值、总计、趋势），量化扭曲程度。",
+            "如果异常值代表真实业务事件，为其建立单独的监控流程。",
         ],
     },
     SignalType.RIGHT_SKEWED: {
-        "title": "Analyse the right-skewed distribution in {column}",
-        "description": (
-            "Understand what is causing the right skew in '{column}' "
-            "and whether it represents concentration risk."
-        ),
+        "title": "分析 {column} 的右偏分布",
+        "description": "理解 '{column}' 右偏的原因，以及是否代表集中风险。",
         "steps": [
-            "Plot the distribution of '{column}' and identify the elbow "
-            "point where values become extreme.",
-            "Profile the records above the 90th percentile: who are "
-            "they, when did they occur, what segments do they belong to?",
-            "Calculate what percentage of total '{column}' value is "
-            "contributed by the top 1%, 5%, and 10% of records.",
-            "Compare mean vs. median over time — is the gap widening "
-            "(increasing skew) or narrowing?",
-            "If the skew is structural, segment analysis between the "
-            "'typical' and 'extreme' populations.",
+            "绘制 '{column}' 的分布图，识别值变为极端值的拐点。",
+            "分析 90 分位数以上的记录：属于哪些实体、发生在何时、属于哪些细分群体？",
+            "计算前 1%、5%、10% 的记录贡献了 '{column}' 总值的百分比。",
+            "比较均值与中位数随时间的变化——差距是在扩大（偏度增加）还是缩小？",
+            "如果偏度是结构性的，将「典型」和「极端」群体分开进行分析。",
         ],
     },
     SignalType.LEFT_SKEWED: {
-        "title": "Analyse the left-skewed distribution in {column}",
-        "description": (
-            "Understand what is causing the left skew in '{column}' "
-            "and whether it indicates underperformance risk."
-        ),
+        "title": "分析 {column} 的左偏分布",
+        "description": "理解 '{column}' 左偏的原因，以及是否代表低绩效风险。",
         "steps": [
-            "Extract records below the 10th percentile of '{column}' "
-            "and profile their characteristics.",
-            "Determine whether low values are: (a) measurement errors, "
-            "(b) special pricing or discounts, (c) genuine underperformance.",
-            "If underperformance: is it concentrated in specific "
-            "segments, regions, or time periods?",
-            "Quantify the impact: how much would the mean change if "
-            "the bottom performers were brought to median level?",
-            "Set up monitoring to detect if the low-value tail is "
-            "growing over time.",
+            "提取 '{column}' 低于 10 分位数的记录，分析其特征。",
+            "判断低值是：(a) 测量误差，(b) 特殊定价或折扣，(c) 真实的低绩效。",
+            "如果是低绩效：是否集中在特定细分群体、地区或时间段？",
+            "量化影响：如果将末尾绩效者提升至中位数水平，均值会变化多少？",
+            "建立监控，检测低值尾部是否随时间增长。",
         ],
     },
     SignalType.HIGH_MISSING_RATE: {
-        "title": "Address data quality in {column}",
-        "description": (
-            "Investigate and remediate the missing data in '{column}' "
-            "to improve analytical reliability."
-        ),
+        "title": "改善 {column} 的数据质量",
+        "description": "调查并修复 '{column}' 的数据缺失问题，提高分析可靠性。",
         "steps": [
-            "Identify whether missing values in '{column}' are random "
-            "or systematic (correlated with time, category, or other "
-            "columns).",
-            "If systematic: which segments or time periods are most "
-            "affected?  Is this a known data collection gap?",
-            "Assess the impact: would imputing the missing values "
-            "change key conclusions?",
-            "Engage the data owner to understand why data is missing "
-            "and whether the collection process can be improved.",
-            "If imputation is acceptable, test simple strategies "
-            "(mean, median, mode) and document the chosen approach.",
+            "判断 '{column}' 的缺失值是随机还是系统性的（与时间、类别或其他列相关）。",
+            "如果是系统性缺失：哪些细分群体或时间段受影响最大？这是已知的数据采集缺失吗？",
+            "评估影响：填补缺失值是否会改变关键结论？",
+            "联系数据所有者，了解数据缺失的原因以及采集流程是否可以改进。",
+            "如果可以填补，测试简单策略（均值、中位数、众数）并记录所选择的方法。",
         ],
     },
     SignalType.HIGH_CARDINALITY: {
-        "title": "Reduce cardinality in {column} for analysis",
-        "description": (
-            "Transform '{column}' from a high-cardinality field into "
-            "analysis-ready categories."
-        ),
+        "title": "降低 {column} 的基数以便分析",
+        "description": "将 '{column}' 从高基数字段转换为可供分析的分组。",
         "steps": [
-            "Review the distinct values in '{column}' — are there "
-            "obvious groupings or hierarchies?",
-            "Check for near-duplicates or inconsistent naming that "
-            "inflates the unique count.",
-            "If '{column}' is an identifier: exclude it from "
-            "dimensional analysis and use it only for joins or "
-            "deduplication.",
-            "If '{column}' should be categorical: apply binning "
-            "(frequency-based, value-based, or business-rule-based).",
-            "Validate the reduced categories with a domain expert "
-            "before using them in reporting.",
+            "审查 '{column}' 的不同值——是否存在明显的分组或层级关系？",
+            "检查是否存在导致唯一值虚高的近似重复值或命名不一致问题。",
+            "如果 '{column}' 是标识符：将其排除在维度分析之外，仅用于关联或去重。",
+            "如果 '{column}' 应为分类变量：应用分箱策略（基于频率、基于值或基于业务规则）。",
+            "在用于报告之前，与领域专家验证简化后的分类。",
         ],
     },
     SignalType.LOW_VARIANCE: {
-        "title": "Evaluate analytical value of {column}",
-        "description": (
-            "Determine whether '{column}' should remain in the "
-            "analytical dataset given its low discriminatory power."
-        ),
+        "title": "评估 {column} 的分析价值",
+        "description": "鉴于 '{column}' 区分能力较低，判断其是否应保留在分析数据集中。",
         "steps": [
-            "Confirm that the low variance is genuine and not an "
-            "artifact of data truncation or default values.",
-            "Check whether '{column}' is expected to vary — if so, "
-            "the lack of variance is ITSELF a finding.",
-            "If the column is genuinely static: deprioritise it in "
-            "segmentation and analysis.",
-            "Identify alternative metrics that measure the same "
-            "business concept with more granularity.",
-            "Document the decision to include or exclude '{column}' "
-            "so future analysts understand the rationale.",
+            "确认低方差是真实的而非数据截断或默认值造成的人为现象。",
+            "检查 '{column}' 是否预期存在变化——如果是，方差缺失本身就是一项发现。",
+            "如果该列确实恒定：在细分和分析中降低其优先级。",
+            "寻找能够以更细粒度衡量相同业务概念的其他指标。",
+            "记录保留或排除 '{column}' 的决策依据，使后续分析人员理解原因。",
         ],
     },
 }
 
 # ---------------------------------------------------------------------------
-# Alternative explanation templates — for REFUTED hypotheses
+# Alternative explanation templates (zh-CN)
 # ---------------------------------------------------------------------------
 
 _ALTERNATIVE_TEMPLATES: dict[SignalType, list[str]] = {
     SignalType.RIGHT_SKEWED: [
-        "The distribution of '{column}' may have a natural upper bound "
-        "that was not considered — check whether the 'extreme' values "
-        "are actually within normal operating range.",
-        "The right skew may be an artifact of how '{column}' is "
-        "calculated (e.g., aggregated from higher-frequency data) "
-        "rather than a real business pattern.",
+        "'{column}' 的分布可能存在未考虑的自然上限——检查'极端'值是否实际在正常运营范围内。",
+        "右偏可能是 '{column}' 的计算方式（如从高频数据聚合）造成的人为现象，而非真实业务模式。",
     ],
     SignalType.OUTLIER_DETECTED: [
-        "The IQR method may be too sensitive for '{column}' — consider "
-        "using a different outlier detection method (z-score, MAD, "
-        "or percentile-based).",
-        "The 'outliers' may represent a legitimate sub-population rather "
-        "than anomalous records — investigate whether they share common "
-        "characteristics.",
+        "IQR 方法可能对 '{column}' 过于敏感——考虑使用其他异常值检测方法（z-score、MAD 或百分位法）。",
+        "这些'异常值'可能代表一个合理的子群体而非异常记录——调查它们是否有共同特征。",
     ],
     SignalType.DECREASING_TREND: [
-        "The apparent decline in '{column}' may be seasonal rather than "
-        "structural — extend the analysis to multiple seasonal cycles.",
-        "A change in data collection or reporting methodology may "
-        "explain the trend — verify that definitions have been "
-        "consistent over the analysis period.",
+        "'{column}' 的表观下降可能是季节性而非结构性的——将分析扩展到多个季节周期。",
+        "数据采集或报告方法的变化可能解释了这一趋势——核实分析期间的定义是否一致。",
     ],
     SignalType.INCREASING_TREND: [
-        "Growth in '{column}' may reflect a one-time event (acquisition, "
-        "promotion, pricing change) rather than organic momentum.",
-        "The trend may be inflated by a small number of outlier "
-        "transactions — check whether the median shows the same pattern.",
+        "'{column}' 的增长可能反映了一次性事件（并购、促销、定价变化），而非有机增长势头。",
+        "趋势可能被少数异常交易夸大——检查中位数是否呈现相同模式。",
     ],
     SignalType.HIGH_CONCENTRATION: [
-        "Concentration may be industry-typical — compare against "
-        "available benchmarks before concluding it is a risk.",
-        "The categorical grouping in '{column}' may be too granular, "
-        "creating artificial concentration — try broader groupings.",
+        "集中度可能是行业常态——在判断为风险之前，对比现有基准数据。",
+        "'{column}' 的分类分组可能过于细致，造成了人为集中——尝试使用更宽泛的分组。",
     ],
 }
 
 # ---------------------------------------------------------------------------
-# Cross-pattern analysis
+# Cross-pattern questions (zh-CN)
 # ---------------------------------------------------------------------------
 
 _CROSS_PATTERN_QUESTIONS: dict[frozenset[SignalType], list[dict]] = {
     frozenset({SignalType.HIGH_CONCENTRATION, SignalType.RIGHT_SKEWED}): [
         {
-            "question": (
-                "Are the same entities driving both the right skew and "
-                "the high concentration?  If so, the business is "
-                "structurally dependent on a very small group."
-            ),
+            "question": "是否是同一组实体同时驱动了右偏和高集中度？如果是，业务在结构上依赖极少数群体。",
             "category": "cross_pattern",
         },
     ],
     frozenset({SignalType.OUTLIER_DETECTED, SignalType.RIGHT_SKEWED}): [
         {
-            "question": (
-                "Are the detected outliers the CAUSE of the right skew?  "
-                "If you remove the outliers, does the distribution become "
-                "symmetric?"
-            ),
+            "question": "检测到的异常值是否是右偏的原因？如果移除异常值，分布是否会变得对称？",
             "category": "cross_pattern",
         },
     ],
     frozenset({SignalType.HIGH_CONCENTRATION, SignalType.DECREASING_TREND}): [
         {
-            "question": (
-                "Is the decline driven by the top contributors losing "
-                "value, or is the long tail shrinking?  The response "
-                "strategy is fundamentally different."
-            ),
+            "question": "下降是由头部贡献者价值减少驱动的，还是长尾在缩小？两种情况的应对策略根本不同。",
             "category": "cross_pattern",
         },
     ],
     frozenset({SignalType.HIGH_CONCENTRATION, SignalType.INCREASING_TREND}): [
         {
-            "question": (
-                "Is the growth concentrated in the already-dominant "
-                "entities?  If so, concentration is increasing alongside "
-                "growth — a compounding risk."
-            ),
+            "question": "增长是否集中在已经占主导地位的实体上？如果是，集中度随增长一起上升——这是复合风险。",
             "category": "cross_pattern",
         },
     ],
     frozenset({SignalType.HIGH_MISSING_RATE, SignalType.OUTLIER_DETECTED}): [
         {
-            "question": (
-                "Could the missing data be creating artificial outliers?  "
-                "If missing values are being defaulted to zero or extreme "
-                "values, both signals may share a root cause."
-            ),
+            "question": "缺失数据是否可能在制造人为的异常值？如果缺失值被默认设为零或极端值，这两个信号可能共享同一根本原因。",
             "category": "cross_pattern",
         },
     ],
@@ -669,37 +410,16 @@ _CROSS_PATTERN_QUESTIONS: dict[frozenset[SignalType], list[dict]] = {
 
 
 # ---------------------------------------------------------------------------
-# The interactive investigator
+# Investigator
 # ---------------------------------------------------------------------------
 
-
 class InteractiveInvestigator:
-    """Produces a forward-looking InteractiveInvestigationReport from a
-    deterministic InvestigationReport.
-
-    Usage:
-        investigator = InteractiveInvestigator()
-        interactive = investigator.investigate(report)
-    """
-
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
+    """Produces a forward-looking InteractiveInvestigationReport."""
 
     def investigate(
         self,
         report: InvestigationReport,
     ) -> InteractiveInvestigationReport:
-        """Generate the interactive investigation report.
-
-        Args:
-            report: The deterministic pipeline output with findings,
-                    executive summary, and next steps.
-
-        Returns:
-            An InteractiveInvestigationReport with follow-up questions,
-            data gaps, investigation paths, and unresolved areas.
-        """
         findings = report.findings
 
         follow_ups = self._generate_follow_up_questions(findings)
@@ -714,9 +434,7 @@ class InteractiveInvestigator:
             unresolved_areas=unresolved,
         )
 
-    # ------------------------------------------------------------------
-    # Follow-up questions
-    # ------------------------------------------------------------------
+    # -- Follow-up questions --------------------------------------------------
 
     def _generate_follow_up_questions(
         self,
@@ -725,10 +443,6 @@ class InteractiveInvestigator:
         questions: list[FollowUpQuestion] = []
 
         for f in findings:
-            # Determine the signal type from the finding title/context.
-            # The finding title contains the hypothesis title, which
-            # includes the signal column.  We use the observation and
-            # status to generate appropriate follow-ups.
             signal_type = self._infer_signal_type(f)
             if signal_type is None:
                 continue
@@ -739,32 +453,24 @@ class InteractiveInvestigator:
                 questions.extend(
                     self._drill_down_questions(signal_type, f, related)
                 )
-
             elif f.status == HypothesisStatus.REFUTED:
                 questions.extend(
                     self._alternative_questions(signal_type, f, related)
                 )
-
             elif f.status == HypothesisStatus.INCONCLUSIVE:
                 questions.extend(
                     self._inconclusive_questions(signal_type, f, related)
                 )
 
-        # Cross-pattern questions
-        signal_types = {
-            self._infer_signal_type(f)
-            for f in findings
-        }
+        signal_types = {self._infer_signal_type(f) for f in findings}
         signal_types.discard(None)
         questions.extend(
             self._cross_pattern_questions(signal_types, findings)
         )
 
-        # Sort by priority
         priority_order = {"high": 0, "medium": 1, "low": 2}
         questions.sort(key=lambda q: priority_order.get(q.priority, 2))
 
-        # Deduplicate by question text
         seen: set[str] = set()
         unique: list[FollowUpQuestion] = []
         for q in questions:
@@ -774,17 +480,12 @@ class InteractiveInvestigator:
         return unique
 
     def _drill_down_questions(
-        self,
-        signal_type: SignalType,
-        finding: Finding,
-        related: list[str],
+        self, signal_type: SignalType, finding: Finding, related: list[str],
     ) -> list[FollowUpQuestion]:
         templates = _DRILL_DOWN_TEMPLATES.get(signal_type, [])
         return [
             FollowUpQuestion(
-                question=t["question"].format(
-                    column=self._extract_column(finding)
-                ),
+                question=t["question"].format(column=self._extract_column(finding)),
                 priority=self._confidence_to_priority(finding),
                 category=t["category"],
                 related_finding_titles=related,
@@ -793,14 +494,11 @@ class InteractiveInvestigator:
                     for d in t.get("required_data", [])
                 ],
             )
-            for t in templates[:2]  # top 2 most relevant
+            for t in templates[:2]
         ]
 
     def _alternative_questions(
-        self,
-        signal_type: SignalType,
-        finding: Finding,
-        related: list[str],
+        self, signal_type: SignalType, finding: Finding, related: list[str],
     ) -> list[FollowUpQuestion]:
         templates = _ALTERNATIVE_TEMPLATES.get(signal_type, [])
         return [
@@ -811,35 +509,30 @@ class InteractiveInvestigator:
                 related_finding_titles=related,
                 required_data=[],
             )
-            for t in templates[:1]  # top 1 to avoid overload
+            for t in templates[:1]
         ]
 
     def _inconclusive_questions(
-        self,
-        signal_type: SignalType,
-        finding: Finding,
-        related: list[str],
+        self, signal_type: SignalType, finding: Finding, related: list[str],
     ) -> list[FollowUpQuestion]:
         return [
             FollowUpQuestion(
                 question=(
-                    f"What additional data or analysis would help resolve "
-                    f"the inconclusive finding '{finding.title}'?"
+                    f"需要哪些额外数据或分析来帮助解决未确定的发现 "
+                    f"'{finding.title}'？"
                 ),
                 priority="medium",
                 category="data_gap",
                 related_finding_titles=related,
                 required_data=[
-                    f"additional data for {self._extract_column(finding)}",
-                    "longer time horizon or more granular breakdowns",
+                    f"{self._extract_column(finding)} 的额外数据",
+                    "更长时间范围或更细粒度的细分数据",
                 ],
             )
         ]
 
     def _cross_pattern_questions(
-        self,
-        signal_types: set[SignalType],
-        findings: list[Finding],
+        self, signal_types: set[SignalType], findings: list[Finding],
     ) -> list[FollowUpQuestion]:
         questions: list[FollowUpQuestion] = []
         all_titles = [f.title for f in findings]
@@ -858,14 +551,9 @@ class InteractiveInvestigator:
                     )
         return questions
 
-    # ------------------------------------------------------------------
-    # Data gaps
-    # ------------------------------------------------------------------
+    # -- Data gaps ------------------------------------------------------------
 
-    def _identify_data_gaps(
-        self,
-        findings: list[Finding],
-    ) -> list[DataGap]:
+    def _identify_data_gaps(self, findings: list[Finding]) -> list[DataGap]:
         gaps: list[DataGap] = []
         seen_gaps: set[str] = set()
 
@@ -873,7 +561,6 @@ class InteractiveInvestigator:
             signal_type = self._infer_signal_type(f)
             if signal_type is None:
                 continue
-
             templates = _DATA_GAP_TEMPLATES.get(signal_type, [])
             for t in templates:
                 if t["gap"] in seen_gaps:
@@ -887,76 +574,47 @@ class InteractiveInvestigator:
                         suggested_source=t["suggested_source"],
                     )
                 )
-
         return gaps
 
-    # ------------------------------------------------------------------
-    # Investigation paths
-    # ------------------------------------------------------------------
+    # -- Investigation paths --------------------------------------------------
 
     def _build_investigation_paths(
-        self,
-        findings: list[Finding],
+        self, findings: list[Finding],
     ) -> list[InvestigationPath]:
         paths: list[InvestigationPath] = []
 
-        # Only build paths for SUPPORTED findings with HIGH or MEDIUM
-        # confidence — these are the ones worth exploring further.
         for f in findings:
             if f.status != HypothesisStatus.SUPPORTED:
                 continue
-
             signal_type = self._infer_signal_type(f)
             if signal_type is None:
                 continue
-
             template = _PATH_TEMPLATES.get(signal_type)
             if template is None:
                 continue
-
             column = self._extract_column(f)
             paths.append(
                 InvestigationPath(
                     title=template["title"].format(column=column),
-                    description=template["description"].format(
-                        column=column
-                    ),
-                    steps=[
-                        s.format(column=column)
-                        for s in template["steps"]
-                    ],
+                    description=template["description"].format(column=column),
+                    steps=[s.format(column=column) for s in template["steps"]],
                     starting_finding=f.title,
                 )
             )
-
-        # Limit to top 5 paths to avoid overwhelming
         return paths[:5]
 
-    # ------------------------------------------------------------------
-    # Unresolved areas
-    # ------------------------------------------------------------------
+    # -- Unresolved areas -----------------------------------------------------
 
-    def _collect_unresolved(
-        self,
-        findings: list[Finding],
-    ) -> list[str]:
+    def _collect_unresolved(self, findings: list[Finding]) -> list[str]:
         return [
             f.title
             for f in findings
             if f.status == HypothesisStatus.INCONCLUSIVE
         ]
 
-    # ------------------------------------------------------------------
-    # Helpers
-    # ------------------------------------------------------------------
+    # -- Helpers --------------------------------------------------------------
 
     def _infer_signal_type(self, finding: Finding) -> SignalType | None:
-        """Infer the SignalType from a Finding's supporting evidence.
-
-        Each Evidence item has a `supporting_signal` field that links it
-        to the SignalType that triggered the hypothesis.  We extract the
-        signal type from the first piece of supporting evidence.
-        """
         for e in finding.supporting_evidence:
             if e.supporting_signal is not None:
                 return e.supporting_signal
@@ -966,7 +624,6 @@ class InteractiveInvestigator:
         return None
 
     def _extract_column(self, finding: Finding) -> str:
-        """Extract the primary column name from a finding's evidence."""
         for e in finding.supporting_evidence:
             if e.related_column:
                 return e.related_column
@@ -977,7 +634,6 @@ class InteractiveInvestigator:
 
     @staticmethod
     def _confidence_to_priority(finding: Finding) -> str:
-        """Map HypothesisConfidence to a priority string."""
         confidence = finding.confidence.value
         if confidence == "high":
             return "high"

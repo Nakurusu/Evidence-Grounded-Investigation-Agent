@@ -1,4 +1,4 @@
-"""Prompt contract for generating the full investigation narrative.
+"""Prompt contract for generating the full investigation narrative (zh-CN).
 
 Contract
 --------
@@ -6,6 +6,7 @@ Version:     1.0.0
 Input:       InvestigationReport (deterministic pipeline output)
 Output:      Narrative (executive summary, key findings, evidence,
              business impact, recommendations)
+Language:    Simplified Chinese
 
 Traceability rules enforced by the consuming service:
 1.  Every claim in key_findings MUST reference at least one piece of
@@ -19,9 +20,7 @@ Traceability rules enforced by the consuming service:
 Provider notes
 --------------
 This prompt is PROVIDER-AGNOSTIC.  It works with any LLM that accepts
-system + user messages.  Provider-specific formatting (e.g., Anthropic's
-system prompt vs OpenAI's system message) is handled by the narrative
-generator service, not by this contract.
+system + user messages.
 """
 
 PROMPT_VERSION = "1.0.0"
@@ -31,27 +30,20 @@ PROMPT_VERSION = "1.0.0"
 # ---------------------------------------------------------------------------
 
 SYSTEM_PROMPT = """\
-You are an investigative data analyst producing a structured investigation \
-narrative from a deterministic analysis report.
+你是一名调查数据分析师，负责从确定性分析报告中生成结构化的调查报告。
 
-Your output must be:
-- **Evidence-based**: every claim references specific metrics or findings \
-from the input report.
-- **Business-relevant**: explain WHY each finding matters, not just WHAT \
-was found.
-- **Honest about uncertainty**: distinguish between confirmed patterns \
-(supported hypotheses), disproven assumptions (refuted hypotheses), and \
-open questions (inconclusive hypotheses).
-- **Actionable**: every recommendation should be specific enough that a \
-business stakeholder knows what to do next.
+你的输出必须：
+- **基于证据**：每一项声明都必须引用输入报告中的具体指标或发现。
+- **与业务相关**：解释每个发现为什么重要，而不仅仅是发现是什么。
+- **诚实对待不确定性**：区分已确认的模式（支持的假设）、已被否定的假设（被驳回的假设）和有待进一步研究的问题（未确定的假设）。
+- **可执行**：每项建议都应足够具体，让业务相关人员知道下一步该做什么。
 
-Do NOT:
-- Invent statistics not present in the input report.
-- State correlations as causations without evidence.
-- Speculate beyond what the data supports.
+不要：
+- 编造输入报告中不存在的统计数据。
+- 在没有证据支持的情况下将相关性表述为因果关系。
+- 超越数据支持的边界进行推测。
 
-You will receive the investigation report as structured JSON.  Produce \
-your analysis as structured output following the exact schema provided.
+请使用简体中文输出所有内容。你将收到结构化的调查报告 JSON，请按照提供的 schema 生成结构化分析结果。
 """
 
 # ---------------------------------------------------------------------------
@@ -59,42 +51,30 @@ your analysis as structured output following the exact schema provided.
 # ---------------------------------------------------------------------------
 
 USER_MESSAGE_TEMPLATE = """\
-Analyse the following investigation report and produce a structured \
-narrative.
+请分析以下调查报告并生成结构化叙事。
 
-## Investigation Report (JSON)
+## 调查报告 (JSON)
 
 {report_json}
 
-## Instructions
+## 说明
 
-1.  **Executive Summary**: Synthesise the overall investigation.  State \
-the total hypotheses tested, how many were supported / refuted / \
-inconclusive, the overall risk level ({overall_risk}), and confidence \
-({overall_confidence}).  Highlight the 2-3 most important findings.
+1.  **执行摘要**：综合整体调查情况。说明总共测试了多少假设，其中多少被支持 / 驳回 / 未确定，整体风险等级（{overall_risk}）和置信度（{overall_confidence}）。突出最重要的 2-3 个发现。
 
-2.  **Key Findings**: For each finding in the report, produce a concise \
-summary that states:
-    - What was found (the observation)
-    - Whether evidence supports or refutes it (the status)
-    - How confident we are (the confidence level)
+2.  **关键发现**：对报告中的每个发现，撰写简洁的总结，说明：
+    - 发现了什么（观察）
+    - 证据是支持还是否定了它（状态）
+    - 我们的置信度如何（置信度等级）
 
-3.  **Supporting Evidence**: Provide a narrative summary of the evidence \
-supporting the key findings.  Reference specific metrics and values \
-where they strengthen the argument.  If evidence is contradictory or \
-inconclusive, say so.
+3.  **支持证据**：提供支持关键发现的证据的叙事性总结。在能够增强论证力度的地方引用具体指标和数值。如果证据存在矛盾或不确定性，请如实说明。
 
-4.  **Business Impact**: Explain why these findings matter.  Describe \
-the risks and opportunities they represent.  Prioritise findings with \
-HIGH confidence and SUPPORTED status.
+4.  **业务影响**：解释这些发现为什么重要。描述它们所代表的风险和机会。优先考虑高置信度且状态为"已支持"的发现。
 
-5.  **Recommendations**: List prioritised next steps.  Each \
-recommendation should be specific, actionable, and traceable to a \
-finding in the report.
+5.  **建议**：列出按优先级排序的下一步行动。每项建议应具体、可执行，并可追溯到报告中的某个发现。
 
-## Output Format
+## 输出格式
 
-Produce your response as a JSON object matching this schema:
+请以匹配以下 schema 的 JSON 对象格式输出：
 
 {output_schema}
 """
@@ -112,8 +92,7 @@ def build_user_message(
         report_json:  The InvestigationReport serialised to JSON.
         overall_risk:  From ExecutiveSummary.overall_risk.
         overall_confidence:  From ExecutiveSummary.overall_confidence.
-        output_schema:  JSON Schema for the Narrative model (used to
-                        instruct the LLM about the expected output format).
+        output_schema:  JSON Schema for the Narrative model.
 
     Returns:
         The filled user message, ready to send to an LLM.

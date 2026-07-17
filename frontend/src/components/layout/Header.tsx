@@ -1,12 +1,9 @@
 import { Sun, Moon, Sparkles } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import { Link } from "react-router-dom";
-import { LanguageSwitcher } from "./LanguageSwitcher";
-import { useT } from "@/i18n/LanguageProvider";
 
 export function Header() {
   const { theme, toggle } = useTheme();
-  const t = useT();
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
@@ -16,12 +13,11 @@ export function Header() {
           className="flex items-center gap-2 text-sm font-semibold text-foreground no-underline transition-opacity hover:opacity-80"
         >
           <Sparkles className="h-4 w-4 shrink-0 text-accent" />
-          <span className="hidden sm:inline">{t.common.appName}</span>
+          <span className="hidden sm:inline">Investigative Analyst</span>
           <span className="sm:hidden">IDA</span>
         </Link>
 
         <div className="flex items-center gap-2">
-          <LanguageSwitcher />
           <button
             onClick={toggle}
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border bg-surface text-muted-foreground transition-colors hover:bg-surface-elevated hover:text-foreground"
