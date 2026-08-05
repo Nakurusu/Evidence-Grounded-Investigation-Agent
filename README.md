@@ -1,204 +1,269 @@
 # Investigative Data Analyst
 
-> An AI-powered investigation engine that transforms structured datasets into evidence-based insights — not another dashboard, not another AutoEDA tool.
+An AI-powered investigation engine for structured datasets. It turns CSV or Excel data into evidence-backed findings, ranked cause candidates, natural-language summaries, and runnable follow-up analyses.
 
----
+The project is built around investigation rather than reporting. It helps users narrow a business problem from raw data to signals, hypotheses, evidence, confidence notes, and the next questions worth checking.
 
-## What It Does
+## Current status
 
-Drop in a CSV. Get back:
+The MVP track is complete. The system now supports both exploration-driven analysis and question-driven investigation.
 
-| Output | What It Tells You |
+| Area | Status |
 |---|---|
-| **Signal Report** | What's interesting in the data? Outliers, trends, skew, concentration... |
-| **Investigation Questions** | What should you ask next based on those signals? |
-| **Hypotheses** | What might explain what you're seeing? |
-| **Evidence** | What statistical evidence supports or refutes each hypothesis? |
-| **Investigation Report** | Findings with business impact analysis and recommendations |
-| **AI Narrative** | Natural-language summary (mock or LLM-powered) |
-| **Interactive Investigation** | Follow-up questions, data gaps, step-by-step exploration paths |
+| Core pipeline, profiling, signal detection, hypotheses, evidence, validation | Complete |
+| Question-aware investigation | Complete |
+| Semantic field roles | Complete |
+| Cause candidate ranking | Complete |
+| Runnable follow-up analysis | Complete |
+| LLM narrative layer with mock fallback | Complete |
+| Multi-dataset investigation graph | Planned |
 
----
+## What it does
 
-## Quick Start
+Upload a structured dataset and, optionally, provide a business question such as “为什么收入下降？” or “哪些地区表现异常？”. The system returns a structured `AIInvestigationReport` containing:
+
+| Output | Purpose |
+|---|---|
+| Dataset profile | Column types, semantic roles, missingness, identifiers |
+| Signal report | Outliers, trends, skew, high concentration, high cardinality, low variance |
+| Investigation questions | Questions generated from detected signals |
+| Hypotheses | Simple and composite explanations for observed patterns |
+| Evidence | Statistical evidence that supports, refutes, or weakens hypotheses |
+| Findings | Business-readable findings with evidence strength and uncertainty notes |
+| Cause candidates | 3 to 5 likely explanations ranked by deterministic evidence |
+| AI narrative | Plain-language summary generated from the deterministic report |
+| Interactive investigation | Follow-up questions, data gaps, investigation paths, and runnable drill-down results |
+
+## Investigation flow
+
+```text
+CSV / Excel
+    ↓
+Parser + Normalizer
+    ↓
+Dataset Profile
+    ↓
+Signal Detection
+    ↓
+Question Generation
+    ↓
+Hypothesis Generation
+    ↓
+Evidence Generation
+    ↓
+Hypothesis Validation
+    ↓
+Investigation Report
+    ↓
+LLM Narrative
+    ↓
+Interactive Investigation
+```
+
+Every layer consumes outputs from previous layers. The system avoids letting LLMs invent analytical conclusions: deterministic services produce signals, evidence, confidence, and validation status; the LLM layer explains those results in natural language.
+
+## MVP highlights
+
+### Question-aware investigation
+
+Users can add an optional investigation question at upload time. The question influences sorting and presentation without filtering out unrelated evidence or allowing the LLM to change deterministic conclusions.
+
+### Semantic field roles
+
+The profiler identifies analysis roles such as `metric`, `dimension`, `time`, `entity`, and `identifier`. These roles help the pipeline avoid treating IDs as ordinary dimensions and guide trend, concentration, and drill-down analyses.
+
+### Cause candidate ranking
+
+The report ranks likely explanations based on evidence count, confidence, question relevance, data-quality limitations, and whether multiple signals point to the same explanation. Candidates are written as hypotheses, not guaranteed root causes.
+
+### Runnable follow-ups
+
+Some follow-up questions can now run additional deterministic analysis against the original uploaded dataset. Results are appended to the interactive investigation layer and do not overwrite the original report.
+
+Supported drill-down analyses:
+
+| Signal family | Analysis type | What it checks |
+|---|---|---|
+| Outliers and skew | `tail_records` | Tail or outlier records and their contribution |
+| Increasing or decreasing trend | `trend_by_dimension` | Which dimension groups drive the trend |
+| High concentration | `top_category_vs_rest` | Top category contribution versus the rest |
+| High missing rate | `missingness_by_dimension` | Whether missingness is concentrated in specific groups |
+| High cardinality | `cardinality_distribution` | Value frequency distribution and coverage thresholds |
+| Low variance | `low_variance_distribution` | Coefficient of variation and dominant values |
+
+## Example
+
+The repository includes `examples/high_cardinality_test.csv`, a small dataset designed to trigger high-cardinality detection on `sku_group`.
+
+After uploading it with the question “这个字段唯一值是否过多，能否聚合？”, the pipeline detects:
+
+```text
+[SUPPORTED] sku_group 可能包含过多唯一值
+unique_ratio = 1.0
+```
+
+Running the first follow-up question returns:
+
+```text
+analysis_type = cardinality_distribution
+status = completed
+
+字段 sku_group 共有 40 个唯一值。
+前 10 个值覆盖了 40 条记录中的 25.0%。
+前 32 个值已覆盖 80% 的记录，可考虑将其余值归为「其他」。
+```
+
+This demonstrates the complete MVP loop: upload data, ask a question, receive evidence-backed findings, then run a follow-up analysis.
+
+## Quick start
+
+### Run with Docker Compose
 
 ```bash
-# CLI demo — no server, no database, no API keys:
-pip install -r requirements.txt
-python examples/run_investigation.py --demo sales
-
-# API server:
-uvicorn app.main:app --reload
-
-# Docker Compose — one command:
+cp .env.example .env
 docker compose up -d
 ```
 
-See [examples/README.md](examples/README.md) for detailed instructions for each mode.
+The API will be available at:
 
----
-
-## Pipeline
-
-```
-CSV / Excel
-    │
-    ▼
-┌──────────────────────────────────────────────────────┐
-│  1. Profiler          column types, nulls, IDs       │
-│  2. Signal Detector   8 signal types                 │
-│  3. Question Gen      investigation questions        │
-│  4. Hypothesis Gen    simple + composite             │
-│  5. Evidence Builders 7 builders, registry pattern   │
-│  6. Hypothesis Validator  supporting / refuting      │
-│  7. Report Generator  findings + executive summary   │
-│  8. AI Narrative      mock (now) → LLM (future)      │
-│  9. Interactive       follow-ups, data gaps, paths   │
-└──────────────────────────────────────────────────────┘
-    │
-    ▼
-AIInvestigationReport (JSON)
+```text
+http://localhost:8000/docs
 ```
 
-See [docs/architecture.md](docs/architecture.md) for the full architecture and design decisions.
+### Run locally
 
----
+Use Python 3.11+ and PostgreSQL. The app reads configuration from `.env`.
 
-## Example Output
-
-```
-======================================================================
-  INVESTIGATIVE DATA ANALYST — 200 rows × 6 columns
-======================================================================
-
---- 2. SIGNALS DETECTED (5) ---
-  [warning] outlier_detected    20 outliers detected in revenue
-  [info   ] decreasing_trend    Column 'revenue' shows a decreasing trend
-  [info   ] right_skewed        Column 'revenue' is right skewed
-
---- 6. VALIDATION — 6 supported, 0 refuted, 0 inconclusive ---
-
---- 8. AI NARRATIVE ---
-  Investigation complete. 6 hypotheses tested: 6 supported.
-  Overall risk: low with high confidence.
-
-  Key Findings:
-  • [SUPPORTED] revenue 存在异常值 (confidence: medium)
-  • [SUPPORTED] 极端值可能正在影响整体结论 (confidence: medium)
-
---- 9. INTERACTIVE INVESTIGATION ---
-  Follow-up Questions:
-  • [high/cross_pattern] Are the detected outliers the CAUSE of the right skew?
-  • [medium/drill_down] Do the outliers correlate with specific regions or periods?
-
-  Data Gaps:
-  • Customer segmentation data → CRM system
-  • External benchmarks → Industry reports
-
-  Investigation Paths:
-  ▶ Investigate outlier records in revenue (5 steps)
-  ▶ Diagnose the decline in revenue (6 steps)
+```bash
+pip install -r requirements.txt
+alembic upgrade head
+uvicorn app.main:app --reload
 ```
 
----
+For local development with a conda environment:
 
-## Project Structure
-
+```bash
+conda activate ai
+alembic upgrade head
+uvicorn app.main:app --reload
 ```
+
+### CLI demo
+
+```bash
+python examples/run_investigation.py --demo sales
+python examples/run_investigation.py --demo operations
+python examples/run_investigation.py --demo churn
+```
+
+See [examples/README.md](examples/README.md) for more demo details.
+
+## API usage
+
+Upload a dataset:
+
+```bash
+curl -X POST "http://localhost:8000/upload/" \
+  -F "file=@examples/high_cardinality_test.csv" \
+  -F "investigation_question=这个字段唯一值是否过多，能否聚合？"
+```
+
+Fetch task result:
+
+```bash
+curl "http://localhost:8000/task/{task_id}"
+```
+
+Run a follow-up drill-down:
+
+```bash
+curl -X POST \
+  "http://localhost:8000/task/{task_id}/follow-ups/{question_index}/drilldown"
+```
+
+The drill-down result is appended to:
+
+```text
+result.interactive_investigation.drilldown_steps
+```
+
+## Project structure
+
+```text
 app/
-├── api/              FastAPI endpoints (upload, tasks)
-├── services/         Business logic
-│   ├── profiler.py           column typing, identifiers
-│   ├── signal_detector.py    8 signal types
-│   ├── question_generator.py investigation questions
-│   ├── hypothesis_generator.py  simple + composite
-│   ├── evidence/             7 evidence builders (registry)
-│   ├── hypothesis_validator.py  evidence classification
-│   ├── report_generator.py   templated findings + exec summary
-│   ├── narrative_generator.py  Protocol + Mock (Phase 7)
-│   ├── interactive_investigator.py  follow-ups, gaps, paths (Phase 8)
-│   └── pipeline.py           orchestrator
-├── schemas/          Pure data models (Pydantic)
-│   ├── ai_report.py          AIInvestigationReport, Narrative
-│   ├── interactive.py        FollowUpQuestion, DataGap, InvestigationPath
-│   └── ...
-├── prompts/          Versioned prompt contracts (Phase 7)
-│   ├── investigation_narrative.py
-│   └── executive_brief.py
-├── models/           Enums (SignalType, HypothesisStatus, ...)
-└── core/             Settings, logging
+├── api/                 FastAPI endpoints
+├── core/                Settings and logging
+├── db/                  SQLAlchemy database setup
+├── models/              ORM models and enums
+├── prompts/             Versioned LLM prompt contracts
+├── schemas/             Pydantic data contracts
+└── services/            Investigation business logic
+    ├── evidence/        Evidence builders
+    ├── profiler.py
+    ├── signal_detector.py
+    ├── question_generator.py
+    ├── hypothesis_generator.py
+    ├── hypothesis_validator.py
+    ├── cause_ranker.py
+    ├── drilldown.py
+    ├── report_generator.py
+    ├── narrative_generator.py
+    └── pipeline.py
 
-tests/                162 tests, 23 fixtures
-docs/                 Architecture, roadmap, decisions
-examples/             Quick-start script
+frontend/
+├── src/api/             API client and shared types
+├── src/components/      UI components
+├── src/i18n/            Chinese and English translations
+├── src/pages/           Upload and investigation pages
+└── src/hooks/           Polling, theme, upload hooks
+
+docs/                    Vision, architecture, decisions, roadmap
+examples/                Demo datasets and CLI examples
+tests/                   Backend test suite
 ```
 
----
+## Architecture principles
 
-## Design Principles
+- Evidence before conclusions: every finding must trace back to structured evidence.
+- Explainability: conclusions reference signals, methods, thresholds, sample sizes, and limitations.
+- Deterministic analysis before LLM presentation: LLMs explain findings, not produce findings.
+- Extension over modification: new detectors and builders should follow registry-style patterns where possible.
+- Schemas stay pure: business logic belongs in `app/services`.
+- Investigation quality comes before feature quantity.
 
-- **Evidence before conclusions** — every finding references statistical evidence
-- **Explainability** — traceable from claim → evidence → signal
-- **Deterministic analysis first, LLM reasoning second** — stats are reproducible
-- **Provider-agnostic** — LLM layer uses a Protocol; swap Anthropic/OpenAI/mock via config
-- **Extensible** — registry pattern for signal detectors and evidence builders
-- **Wrapping, not extending** — generative outputs wrap deterministic ones, never modify them
+## Tech stack
 
-See [docs/principles.md](docs/principles.md) and [docs/decisions.md](docs/decisions.md) for the full rationale.
-
----
-
-## Roadmap
-
-| Phase | Status |
+| Layer | Tools |
 |---|---|
-| Phase 1 – Infrastructure | ✅ |
-| Phase 2 – Dataset Profiling | ✅ |
-| Phase 3 – Signal Detection | ✅ |
-| Phase 4 – Question Generation | ✅ |
-| Phase 5 – Hypothesis Generation | ✅ |
-| Phase 6 – Evidence-Based Investigation | ✅ |
-| Phase 7 – LLM Integration (Protocol + Mock) | ✅ |
-| Phase 8 – Interactive Investigation | ✅ |
-| Phase 9 – Multi-Dataset Analysis | ⏳ |
-| Phase 10 – Deployment & Operations | ⏳ |
-
-See [docs/roadmap.md](docs/roadmap.md) for details.
-
----
+| Backend | Python 3.11+, FastAPI, Pandas, Pydantic |
+| Database | PostgreSQL, SQLAlchemy, Alembic |
+| LLM integration | Provider-agnostic protocol, mock fallback, OpenAI-compatible mode |
+| Frontend | React, TypeScript, Vite, i18n |
+| Testing | pytest |
+| Deployment | Docker Compose |
 
 ## Tests
 
 ```bash
-pip install -r requirements-dev.txt
-python -m pytest tests/ -v
+python -m pytest tests/ -q
 ```
 
-**162 tests, 23 fixtures** covering all pipeline stages.
+Current backend coverage:
 
----
+```text
+209 passed, 1 skipped
+```
 
-## Tech Stack
-
-- Python 3.11+
-- Pandas, Pydantic
-- FastAPI, Uvicorn
-- PostgreSQL, SQLAlchemy, Alembic
-- pytest (162 tests)
-
-Planned: Anthropic SDK, OpenAI SDK, Docker
-
----
+The test suite covers profiling, signal detection, evidence builders, hypothesis validation, report generation, narrative fallback, interactive investigation, and all six runnable drill-down analysis types.
 
 ## Documentation
 
-- [Vision](docs/vision.md) — long-term project goals
-- [Architecture](docs/architecture.md) — system design and pipeline flow
-- [Principles](docs/principles.md) — product and engineering principles
-- [Roadmap](docs/roadmap.md) — development phases
-- [Decisions](docs/decisions.md) — important architecture decisions
-
----
+- [Vision](docs/vision.md)
+- [Architecture](docs/architecture.md)
+- [Principles](docs/principles.md)
+- [Roadmap](docs/roadmap.md)
+- [Decisions](docs/decisions.md)
+- [MVP Plan](docs/mvp-plan.md)
 
 ## License
 

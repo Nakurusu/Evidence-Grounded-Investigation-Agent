@@ -150,6 +150,25 @@ export interface Translations {
       running: string;
       runFailed: string;
       drilldownResults: string;
+      drilldownStatus: {
+        completed: string;
+        unsupported: string;
+      };
+      drilldownAnalysisType: {
+        tail_records: string;
+        trend_by_dimension: string;
+        top_category_vs_rest: string;
+        missingness_by_dimension: string;
+        cardinality_distribution: string;
+        low_variance_distribution: string;
+        unsupported: string;
+      };
+      questionCategory: {
+        drill_down: string;
+        data_gap: string;
+        alternative_explanation: string;
+        cross_pattern: string;
+      };
     };
     crossDataset: {
       tab: string;

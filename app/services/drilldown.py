@@ -66,6 +66,10 @@ class DrillDownService:
             return self._analyze_concentration(df, report, question, finding)
         if signal_type == SignalType.HIGH_MISSING_RATE:
             return self._analyze_missingness(df, report, question, finding)
+        if signal_type == SignalType.HIGH_CARDINALITY:
+            return self._analyze_cardinality(df, report, question, finding)
+        if signal_type == SignalType.LOW_VARIANCE:
+            return self._analyze_low_variance(df, report, question, finding)
 
         return self._unsupported(
             question,
@@ -375,6 +379,151 @@ class DrillDownService:
             ],
         )
 
+    def _analyze_cardinality(
+        self,
+        df: DataFrame,
+        report: AIInvestigationReport,
+        question: FollowUpQuestion,
+        finding: Finding,
+    ) -> DrillDownResult:
+        column = self._first_existing_column(df, finding.affected_columns)
+        if column is None:
+            return self._unsupported(question, "没有可用于基数分析的列。")
+
+        values = df[column].dropna()
+        if values.empty:
+            return self._unsupported(question, f"字段 {column} 没有非空值。")
+
+        total = int(len(values))
+        unique_count = int(values.nunique())
+        value_counts = values.value_counts()
+        top_values = value_counts.head(10)
+        top_share = float(top_values.sum()) / total if total else 0
+
+        # Suggest grouping: if top N categories cover most records, rest can be grouped
+        coverage_80 = self._coverage_threshold(value_counts, total, 0.8)
+
+        summary = (
+            f"字段 {column} 共有 {unique_count} 个唯一值。"
+            f"前 10 个值覆盖了 {total} 条记录中的 {top_share:.1%}。"
+        )
+        if coverage_80 is not None and coverage_80 < unique_count:
+            summary += f"前 {coverage_80} 个值已覆盖 80% 的记录，可考虑将其余值归为「其他」。"
+
+        records = pd.DataFrame(
+            [
+                {column: str(idx), "count": int(cnt), "share": round(cnt / total, 4)}
+                for idx, cnt in top_values.items()
+            ]
+        )
+
+        return self._result(
+            question=question,
+            status="completed",
+            analysis_type="cardinality_distribution",
+            summary=summary,
+            related_columns=[column],
+            evidence=[
+                DrillDownEvidence(
+                    label="unique_value_count",
+                    value=unique_count,
+                    description=f"{column} 中的唯一值数量。",
+                ),
+                DrillDownEvidence(
+                    label="top10_coverage",
+                    value=round(top_share, 4),
+                    description="前 10 个值覆盖的记录比例。",
+                ),
+                DrillDownEvidence(
+                    label="coverage_80_threshold",
+                    value=coverage_80,
+                    description="覆盖 80% 记录所需的值数量。",
+                ),
+            ],
+            sample_records=self._records(records),
+            limitations=[
+                "该分析仅展示值频率分布，不判断高基数是否合理。",
+                "是否可聚合取决于业务语义，需结合字段含义确认。",
+            ],
+        )
+
+    def _analyze_low_variance(
+        self,
+        df: DataFrame,
+        report: AIInvestigationReport,
+        question: FollowUpQuestion,
+        finding: Finding,
+    ) -> DrillDownResult:
+        metric = self._metric_column(df, report, finding)
+        if metric is None:
+            return self._unsupported(question, "没有可用于方差分析的数值字段。")
+
+        values = pd.to_numeric(df[metric], errors="coerce").dropna()
+        if values.empty:
+            return self._unsupported(question, f"字段 {metric} 没有可分析的非空数值。")
+
+        mean = float(values.mean())
+        std = float(values.std())
+        cv = std / abs(mean) if mean else None
+        unique_vals = int(values.nunique())
+        most_common = values.value_counts().head(3)
+
+        summary = (
+            f"字段 {metric} 的变异系数（CV）为 {cv:.4f}，"
+            f"均值 {mean:.4g}，标准差 {std:.4g}。"
+        )
+        if unique_vals <= 5:
+            summary += f"该字段仅有 {unique_vals} 个不同值，接近常量。"
+        elif most_common.iloc[0] / len(values) > 0.5:
+            summary += (
+                f"最常见值 {most_common.index[0]} 出现在 "
+                f"{most_common.iloc[0] / len(values):.1%} 的记录中。"
+            )
+
+        records = pd.DataFrame(
+            [
+                {metric: str(idx), "count": int(cnt), "share": round(cnt / len(values), 4)}
+                for idx, cnt in most_common.items()
+            ]
+        )
+
+        return self._result(
+            question=question,
+            status="completed",
+            analysis_type="low_variance_distribution",
+            summary=summary,
+            related_columns=[metric],
+            evidence=[
+                DrillDownEvidence(
+                    label="coefficient_of_variation",
+                    value=round(cv, 6) if cv is not None else None,
+                    description=f"{metric} 的变异系数（标准差 / |均值|）。",
+                ),
+                DrillDownEvidence(
+                    label="unique_value_count",
+                    value=unique_vals,
+                    description=f"{metric} 中的不同值数量。",
+                ),
+                DrillDownEvidence(
+                    label="most_common_value",
+                    value=str(most_common.index[0]) if not most_common.empty else None,
+                    description="出现频率最高的值。",
+                ),
+                DrillDownEvidence(
+                    label="most_common_share",
+                    value=round(float(most_common.iloc[0] / len(values)), 4)
+                    if not most_common.empty
+                    else None,
+                    description="最常见值的占比。",
+                ),
+            ],
+            sample_records=self._records(records),
+            limitations=[
+                "低方差可能是数据采集截断或默认值填充造成的，需结合业务确认。",
+                "该分析不替代业务判断——某些指标本身预期为低方差。",
+            ],
+        )
+
     # ------------------------------------------------------------------
     # Resolution helpers
     # ------------------------------------------------------------------
@@ -465,6 +614,19 @@ class DrillDownService:
             if column in df.columns and pd.api.types.is_numeric_dtype(df[column]):
                 return column
         return None
+
+    @staticmethod
+    def _coverage_threshold(
+        value_counts: "pd.Series[int]",
+        total: int,
+        threshold: float,
+    ) -> int | None:
+        """Return the minimum number of top values needed to reach *threshold* share."""
+        if total == 0:
+            return None
+        cumulative = value_counts.cumsum() / total
+        below = int((cumulative < threshold).sum())
+        return min(below + 1, int(len(value_counts)))
 
     # ------------------------------------------------------------------
     # Result helpers

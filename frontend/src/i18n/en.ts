@@ -158,6 +158,25 @@ const en: Translations = {
       running: "Running...",
       runFailed: "Follow-up analysis failed.",
       drilldownResults: "Follow-up Analysis Results",
+      drilldownStatus: {
+        completed: "Completed",
+        unsupported: "Not Supported",
+      },
+      drilldownAnalysisType: {
+        tail_records: "Tail / Outlier Records",
+        trend_by_dimension: "Trend by Dimension",
+        top_category_vs_rest: "Top Category vs Rest",
+        missingness_by_dimension: "Missingness by Dimension",
+        cardinality_distribution: "Value Frequency Distribution",
+        low_variance_distribution: "Low Variance Distribution",
+        unsupported: "Unsupported Analysis",
+      },
+      questionCategory: {
+        drill_down: "Drill Down",
+        data_gap: "Data Gap",
+        alternative_explanation: "Alternative Explanation",
+        cross_pattern: "Cross Pattern",
+      },
     },
     crossDataset: {
       tab: "Cross-Dataset",

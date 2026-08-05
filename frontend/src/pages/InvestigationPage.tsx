@@ -1297,7 +1297,11 @@ function InteractiveTab({
                 >
                   {q.priority.toUpperCase()}
                 </span>
-                <span className="text-xs text-muted">{q.category}</span>
+                <span className="text-xs text-muted">
+                  {t.investigation.interactive.questionCategory[
+                    q.category as keyof typeof t.investigation.interactive.questionCategory
+                  ] ?? q.category}
+                </span>
               </div>
               <p className="mb-2 text-sm text-foreground">{q.question}</p>
 
@@ -1377,9 +1381,15 @@ function InteractiveTab({
                         : "bg-warning-muted text-warning",
                     )}
                   >
-                    {step.status}
+                    {t.investigation.interactive.drilldownStatus[
+                      step.status as keyof typeof t.investigation.interactive.drilldownStatus
+                    ] ?? step.status}
                   </span>
-                  <span className="text-xs text-muted">{step.analysis_type}</span>
+                  <span className="text-xs text-muted">
+                    {t.investigation.interactive.drilldownAnalysisType[
+                      step.analysis_type as keyof typeof t.investigation.interactive.drilldownAnalysisType
+                    ] ?? step.analysis_type}
+                  </span>
                 </div>
                 <p className="mb-2 text-sm font-medium text-foreground">
                   {step.question}
@@ -1502,7 +1512,7 @@ function InteractiveTab({
                   </span>
                   {g.affected_hypotheses.length > 0 && (
                     <span className="text-xs text-muted">
-                      · Affects: {g.affected_hypotheses.join(", ")}
+                      · {t.investigation.interactive.affects}: {g.affected_hypotheses.join(", ")}
                     </span>
                   )}
                 </div>

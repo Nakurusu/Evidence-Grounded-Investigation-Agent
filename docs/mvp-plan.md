@@ -218,6 +218,19 @@ MVP 的核心输出应回答：
 
 让部分后续问题可以继续生成新的分析结果。完成后，系统从一次性报告开始走向交互式调查。
 
+支持 6 类 drill-down 分析：
+
+- 尾部/异常记录分析（outlier、right_skew、left_skew）
+- 按维度拆解趋势（increasing/decreasing trend）
+- 头部类别对比（high_concentration）
+- 缺失集中度分析（high_missing_rate）
+- 值频率分布（high_cardinality）
+- 低方差分布统计（low_variance）
+
+所有分析结果追加到 interactive investigation 层，不修改原始确定性报告。
+
+**Status**: Completed in MVP track.
+
 ## MVP completion signal
 
 当用户能完成下面这条路径时，可以认为 MVP 成立：

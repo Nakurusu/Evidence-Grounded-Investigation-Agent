@@ -160,3 +160,58 @@ def test_non_drilldown_question_is_unsupported():
 
     assert result.status == "unsupported"
     assert result.analysis_type == "unsupported"
+
+
+def test_concentration_drilldown_compares_top_vs_rest():
+    df = pd.DataFrame(
+        {
+            "region": ["A"] * 10 + ["B"] * 3 + ["C"] * 2,
+            "revenue": [100] * 10 + [30, 20, 10, 5, 5],
+        }
+    )
+    finding = _finding(SignalType.HIGH_CONCENTRATION, ["revenue"])
+    report = _ai_report(finding, _question(finding))
+
+    result = DrillDownService().run(df, report, 0)
+
+    assert result.status == "completed"
+    assert result.analysis_type == "top_category_vs_rest"
+    assert any(item.label == "top_category" for item in result.evidence)
+    top_cat = next(item for item in result.evidence if item.label == "top_category")
+    assert top_cat.value == "A"
+
+
+def test_cardinality_drilldown_shows_value_distribution():
+    df = pd.DataFrame(
+        {"category": [f"val_{i}" for i in range(15)] + ["common"] * 10}
+    )
+    finding = _finding(SignalType.HIGH_CARDINALITY, ["category"])
+    report = _ai_report(finding, _question(finding))
+
+    result = DrillDownService().run(df, report, 0)
+
+    assert result.status == "completed"
+    assert result.analysis_type == "cardinality_distribution"
+    assert any(item.label == "unique_value_count" for item in result.evidence)
+    unique_item = next(
+        item for item in result.evidence if item.label == "unique_value_count"
+    )
+    assert unique_item.value == 16
+    assert result.sample_records
+
+
+def test_low_variance_drilldown_shows_distribution_stats():
+    df = pd.DataFrame({"revenue": [100.0] * 18 + [101.0, 99.0]})
+    finding = _finding(SignalType.LOW_VARIANCE, ["revenue"])
+    report = _ai_report(finding, _question(finding))
+
+    result = DrillDownService().run(df, report, 0)
+
+    assert result.status == "completed"
+    assert result.analysis_type == "low_variance_distribution"
+    assert any(item.label == "coefficient_of_variation" for item in result.evidence)
+    cv_item = next(
+        item for item in result.evidence if item.label == "coefficient_of_variation"
+    )
+    assert cv_item.value is not None
+    assert cv_item.value < 0.05

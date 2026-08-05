@@ -158,6 +158,25 @@ const zh: Translations = {
       running: "分析中...",
       runFailed: "后续分析运行失败。",
       drilldownResults: "后续分析结果",
+      drilldownStatus: {
+        completed: "已完成",
+        unsupported: "暂不支持",
+      },
+      drilldownAnalysisType: {
+        tail_records: "尾部/异常记录分析",
+        trend_by_dimension: "按维度拆解趋势",
+        top_category_vs_rest: "头部类别对比",
+        missingness_by_dimension: "缺失集中度分析",
+        cardinality_distribution: "值频率分布",
+        low_variance_distribution: "低方差分布统计",
+        unsupported: "不支持的分析类型",
+      },
+      questionCategory: {
+        drill_down: "深入分析",
+        data_gap: "数据缺口",
+        alternative_explanation: "替代解释",
+        cross_pattern: "跨模式",
+      },
     },
     crossDataset: {
       tab: "跨数据集",

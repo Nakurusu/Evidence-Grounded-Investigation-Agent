@@ -126,7 +126,7 @@ MVP completion focuses on:
 - limited runnable follow-up questions
 - a clearer frontend flow around questions, evidence, confidence, and next investigation
 
-**Status**: In progress
+**Status**: Completed
 
 ---
 
@@ -166,17 +166,18 @@ MVP completion focuses on:
 | Phase 6 – Evidence-Based Investigation | ✅ |
 | Phase 7 – LLM Integration | ✅ |
 | Phase 8 – Interactive Investigation | ✅ |
-| MVP Completion Track | In progress |
+| MVP Completion Track | ✅ |
 | Phase 9 – Multi-Dataset Analysis | ⏳ |
 | Phase 10 – Deployment & Operations | ⏳ |
 
 ### Test Coverage
 
-162 tests, 23 fixtures, covering:
+209 tests, 23 fixtures, covering:
 - All 8 signal detectors
 - All 7 evidence builders
 - Hypothesis validation rules
 - Report generation templates
 - Narrative mock generator
 - Interactive investigator
+- Runnable drill-down analyses (6 types)
 - Full pipeline integration

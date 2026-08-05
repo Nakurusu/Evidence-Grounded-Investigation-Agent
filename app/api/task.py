@@ -55,8 +55,14 @@ async def run_follow_up_drilldown(
             detail="Task has no investigation result",
         )
 
+    report = AIInvestigationReport.model_validate(task.result)
+    if report.interactive_investigation is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Task has no interactive investigation result",
+        )
+
     try:
-        report = AIInvestigationReport.model_validate(task.result)
         file_path = get_uploaded_file_path(task_id, task.filename)
         df = normalize_dataframe(parse_file(file_path))
         result = DrillDownService().run(df, report, question_index)
@@ -66,12 +72,6 @@ async def run_follow_up_drilldown(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-    if report.interactive_investigation is None:
-        raise HTTPException(
-            status_code=400,
-            detail="Task has no interactive investigation result",
-        )
 
     report.interactive_investigation.drilldown_steps.append(result)
     task.result = report.model_dump(mode="json")
