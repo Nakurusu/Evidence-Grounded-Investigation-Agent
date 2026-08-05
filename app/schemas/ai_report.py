@@ -13,7 +13,7 @@ Separation of concerns:
 """
 
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.schemas.investigation_report import InvestigationReport
 from app.schemas.interactive import InteractiveInvestigationReport
@@ -53,6 +53,21 @@ class Narrative(BaseModel):
     recommendations: list[str]
     """Prioritised, actionable next steps.  Each recommendation should
     reference the finding it addresses."""
+
+    plain_language_summary: str | None = None
+    """Plain-language summary for non-technical users."""
+
+    what_happened: list[str] = Field(default_factory=list)
+    """Short bullets describing the most important observed patterns."""
+
+    why_it_matters: list[str] = Field(default_factory=list)
+    """Short bullets explaining business relevance without overstating causality."""
+
+    what_to_check_next: list[str] = Field(default_factory=list)
+    """Follow-up checks that should be investigated next."""
+
+    confidence_notes: list[str] = Field(default_factory=list)
+    """Notes about uncertainty, evidence strength, and unresolved areas."""
 
 
 # ---------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.models.enums import HypothesisStatus, HypothesisConfidence
 from app.schemas.evidence import Evidence
@@ -24,6 +24,12 @@ class DatasetSummary(BaseModel):
     boolean_columns: list[str]
 
 
+class QualitySummary(BaseModel):
+    issue_count: int = 0
+    risk_level: str = "low"
+    warnings: list[str] = Field(default_factory=list)
+
+
 class Finding(BaseModel):
     title: str
     observation: str
@@ -34,6 +40,12 @@ class Finding(BaseModel):
     analysis: str
     business_impact: str
     recommendation: str
+    primary_signal_type: str | None = None
+    affected_columns: list[str] = Field(default_factory=list)
+    key_metrics: dict[str, float | int | str] = Field(default_factory=dict)
+    trace: dict[str, list[str] | str] = Field(default_factory=dict)
+    evidence_strength: str | None = None
+    uncertainty_notes: list[str] = Field(default_factory=list)
 
 
 class InvestigationReport(BaseModel):
@@ -41,3 +53,4 @@ class InvestigationReport(BaseModel):
     dataset_summary: DatasetSummary
     findings: list[Finding]
     next_steps: list[str]
+    quality_summary: QualitySummary | None = None

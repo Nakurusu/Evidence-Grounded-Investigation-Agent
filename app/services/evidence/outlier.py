@@ -39,6 +39,11 @@ def build_outlier_evidence(
             value=outlier_count,
             supporting_signal=SignalType.OUTLIER_DETECTED,
             related_column=signal.column,
+            method="IQR outlier detection",
+            threshold="outside [Q1 - 1.5×IQR, Q3 + 1.5×IQR]",
+            sample_size=len(series),
+            direction="supporting",
+            strength="moderate" if outlier_count > 0 else "limited",
         ),
         Evidence(
             title=f"Outlier ratio in {signal.column}",
@@ -50,6 +55,9 @@ def build_outlier_evidence(
             value=outlier_ratio,
             supporting_signal=SignalType.OUTLIER_DETECTED,
             related_column=signal.column,
+            method="IQR outlier detection",
+            sample_size=len(series),
+            direction="context",
         ),
         Evidence(
             title=f"IQR lower bound for {signal.column}",
@@ -61,6 +69,9 @@ def build_outlier_evidence(
             value=round(float(lower), 4),
             supporting_signal=SignalType.OUTLIER_DETECTED,
             related_column=signal.column,
+            method="IQR outlier detection",
+            sample_size=len(series),
+            direction="context",
         ),
         Evidence(
             title=f"IQR upper bound for {signal.column}",
@@ -72,5 +83,8 @@ def build_outlier_evidence(
             value=round(float(upper), 4),
             supporting_signal=SignalType.OUTLIER_DETECTED,
             related_column=signal.column,
+            method="IQR outlier detection",
+            sample_size=len(series),
+            direction="context",
         ),
     ]

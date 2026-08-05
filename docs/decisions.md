@@ -444,3 +444,54 @@ InvestigationReport (pure structured data: signals, evidence, stats)
 - `interactive_investigator.py` templates (~576 lines) remain in v1.0 but are the first candidate for LLM replacement.
 - New presentation forms (Executive Brief, etc.) should be LLM-native from the start.
 - The `InvestigationReport` schema may need to grow richer structured fields (e.g., per-finding evidence summaries, segment breakdowns) to give LLMs enough data to generate high-quality output without templates.
+
+---
+
+# Decision 010
+
+## Title
+
+Transparent pipeline progress instead of hidden chain-of-thought
+
+## Date
+
+2026-08-04
+
+## Status
+
+Accepted
+
+## Context
+
+Users need to understand what the system is doing during long-running investigations.
+
+However, the project separates deterministic investigation logic from LLM presentation. Showing or fabricating hidden model reasoning would blur that boundary and could imply unsupported causality.
+
+## Decision
+
+The product should display transparent investigation progress using deterministic pipeline stages.
+
+Progress UI may show:
+
+- current stage
+- stage goal
+- stage input
+- stage output
+- why the stage matters
+- completed stages
+
+Progress UI must not show or invent hidden LLM chain-of-thought.
+
+## Reason
+
+Stage-level transparency helps users understand that the system is progressively transforming data into evidence-backed findings.
+
+It also preserves the architecture principle that conclusions must come from signals, evidence, validation, and structured reports rather than opaque model reasoning.
+
+## Consequences
+
+Task progress contracts should include user-facing stage explanations.
+
+Frontend loading states should explain the deterministic investigation workflow.
+
+LLM narrative failures should not invalidate completed deterministic reports.

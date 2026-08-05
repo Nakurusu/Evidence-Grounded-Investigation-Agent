@@ -125,8 +125,8 @@ class TestMockNarrativeGenerator:
     def test_all_supported_report(self):
         gen = MockNarrativeGenerator()
         narrative, _ = gen.generate(_minimal_report(supported=3, refuted=0, inconclusive=0))
-        assert "3 hypotheses were tested" in narrative.executive_summary
-        assert "3 supported" in narrative.executive_summary
+        assert "共检验 3 个假设" in narrative.executive_summary
+        assert "3 个被支持" in narrative.executive_summary
 
     def test_returns_valid_wrapped_report(self):
         gen = MockNarrativeGenerator()
@@ -145,13 +145,19 @@ class TestMockNarrativeGenerator:
 class TestFactory:
     def test_factory_returns_valid_generator(self):
         """Factory should return something that implements NarrativeGenerator."""
-        gen = get_narrative_generator()
-        assert gen is not None
-        # Duck-type check: must have a generate method
-        assert hasattr(gen, "generate")
-        narrative, metadata = gen.generate(_minimal_report())
-        assert narrative.executive_summary
-        assert metadata.provider in ("mock", "openai")
+        import app.core.settings as s
+        original = s.settings.LLM_MODE
+        s.settings.LLM_MODE = "mock"
+        try:
+            gen = get_narrative_generator()
+            assert gen is not None
+            # Duck-type check: must have a generate method
+            assert hasattr(gen, "generate")
+            narrative, metadata = gen.generate(_minimal_report())
+            assert narrative.executive_summary
+            assert metadata.provider == "mock"
+        finally:
+            s.settings.LLM_MODE = original
 
     def test_mock_mode_forced(self, monkeypatch):
         """When LLM_MODE=mock, factory returns MockNarrativeGenerator."""

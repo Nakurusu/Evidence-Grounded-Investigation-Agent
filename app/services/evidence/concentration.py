@@ -1,9 +1,11 @@
 from pandas import DataFrame
 
+from app.models.enums import ColumnType, SignalType
+from app.schemas.evidence import Evidence
 from app.schemas.profile import DatasetProfile
 from app.schemas.signal import Signal
-from app.models.enums import SignalType, ColumnType
-from app.schemas.evidence import Evidence
+from app.services.statistics import compute_concentration_metrics
+from app.services.thresholds import CONCENTRATION_TOP1_WARNING
 
 
 def build_concentration_evidence(
@@ -11,54 +13,68 @@ def build_concentration_evidence(
     profile: DatasetProfile,
     signal: Signal,
 ) -> list[Evidence]:
-    numeric_cols = [
-        c.name
-        for c in profile.columns
-        if c.dtype == ColumnType.NUMERIC and not c.is_identifier
-    ]
+    dimension_col = signal.dimension_column or signal.column
+    if dimension_col is None:
+        return []
+
+    metric_cols = (
+        [signal.metric_column]
+        if signal.metric_column
+        else [
+            c.name
+            for c in profile.columns
+            if c.dtype == ColumnType.NUMERIC and not c.is_identifier
+        ]
+    )
 
     evidence: list[Evidence] = []
-
-    for num_col in numeric_cols:
-        grouped = df.groupby(signal.column)[num_col].sum()
-        total = grouped.sum()
-        if total == 0:
+    for metric_col in metric_cols:
+        if metric_col is None:
             continue
 
-        top_1 = grouped.max()
-        top_1_share = top_1 / total
-        top_1_cat = grouped.idxmax()
-
-        top_n = min(3, len(grouped))
-        top_n_share = grouped.nlargest(top_n).sum() / total
+        metrics = compute_concentration_metrics(df, dimension_col, metric_col)
+        if metrics is None:
+            continue
 
         evidence.append(
             Evidence(
-                title=f"Top contributor in '{signal.column}' for {num_col}",
+                title=f"Top contributor in '{dimension_col}' for {metric_col}",
                 description=(
-                    f"Category '{top_1_cat}' contributes "
-                    f"{top_1_share:.1%} of total {num_col}"
+                    f"Category '{metrics.top_category}' contributes "
+                    f"{metrics.top_1_share:.1%} of total {metric_col}"
                 ),
                 metric="top_1_share",
-                value=round(float(top_1_share), 4),
+                value=round(metrics.top_1_share, 4),
                 supporting_signal=SignalType.HIGH_CONCENTRATION,
-                related_column=signal.column,
+                related_column=metric_col,
+                method="category aggregation concentration",
+                threshold=CONCENTRATION_TOP1_WARNING,
+                sample_size=len(df[[dimension_col, metric_col]].dropna()),
+                direction="supporting",
+                strength=(
+                    "moderate"
+                    if metrics.top_1_share >= CONCENTRATION_TOP1_WARNING
+                    else "limited"
+                ),
             )
         )
         evidence.append(
             Evidence(
                 title=(
-                    f"Top-{top_n} concentration in '{signal.column}' "
-                    f"for {num_col}"
+                    f"Top-{metrics.top_n} concentration in '{dimension_col}' "
+                    f"for {metric_col}"
                 ),
                 description=(
-                    f"The top {top_n} categories contribute "
-                    f"{top_n_share:.1%} of total {num_col}"
+                    f"The top {metrics.top_n} categories contribute "
+                    f"{metrics.top_n_share:.1%} of total {metric_col}"
                 ),
-                metric=f"top_{top_n}_share",
-                value=round(float(top_n_share), 4),
+                metric=f"top_{metrics.top_n}_share",
+                value=round(metrics.top_n_share, 4),
                 supporting_signal=SignalType.HIGH_CONCENTRATION,
-                related_column=signal.column,
+                related_column=metric_col,
+                method="category aggregation concentration",
+                sample_size=len(df[[dimension_col, metric_col]].dropna()),
+                direction="context",
             )
         )
 

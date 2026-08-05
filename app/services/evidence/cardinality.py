@@ -4,6 +4,7 @@ from app.schemas.profile import DatasetProfile
 from app.schemas.signal import Signal
 from app.models.enums import SignalType
 from app.schemas.evidence import Evidence
+from app.services.thresholds import HIGH_CARDINALITY_RATIO
 
 
 def build_cardinality_evidence(
@@ -34,6 +35,9 @@ def build_cardinality_evidence(
             value=col_profile.unique_count,
             supporting_signal=SignalType.HIGH_CARDINALITY,
             related_column=signal.column,
+            method="unique value ratio",
+            sample_size=profile.row_count,
+            direction="context",
         ),
         Evidence(
             title=f"Uniqueness ratio in {signal.column}",
@@ -45,5 +49,14 @@ def build_cardinality_evidence(
             value=unique_ratio,
             supporting_signal=SignalType.HIGH_CARDINALITY,
             related_column=signal.column,
+            method="unique value ratio",
+            threshold=HIGH_CARDINALITY_RATIO,
+            sample_size=profile.row_count,
+            direction="supporting",
+            strength=(
+                "moderate"
+                if unique_ratio >= HIGH_CARDINALITY_RATIO
+                else "limited"
+            ),
         ),
     ]

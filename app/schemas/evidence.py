@@ -10,6 +10,13 @@ class Evidence(BaseModel):
 
     supporting_signal: SignalType | None = None
     related_column: str | None = None
+    method: str | None = None
+    threshold: str | float | int | None = None
+    sample_size: int | None = None
+    direction: str | None = None
+    strength: str | None = None
+    limitation: str | None = None
+
 
 class EvidenceReport(BaseModel):
     evidence: list[Evidence]

@@ -4,6 +4,8 @@ from app.schemas.profile import DatasetProfile
 from app.schemas.signal import Signal
 from app.models.enums import SignalType
 from app.schemas.evidence import Evidence
+from app.services.statistics import coefficient_of_variation
+from app.services.thresholds import LOW_VARIANCE_CV
 
 
 def build_variance_evidence(
@@ -15,9 +17,10 @@ def build_variance_evidence(
     if len(series) < 2:
         return []
 
-    mean = float(series.mean())
     std = float(series.std())
-    cv = round(std / abs(mean), 4) if mean != 0 else 0.0
+    cv = coefficient_of_variation(series)
+    if cv is None:
+        return []
 
     return [
         Evidence(
@@ -27,9 +30,14 @@ def build_variance_evidence(
                 f"{cv:.2%}"
             ),
             metric="coefficient_of_variation",
-            value=cv,
+            value=round(cv, 4),
             supporting_signal=SignalType.LOW_VARIANCE,
             related_column=signal.column,
+            method="coefficient of variation",
+            threshold=LOW_VARIANCE_CV,
+            sample_size=len(series),
+            direction="supporting",
+            strength="moderate" if cv <= LOW_VARIANCE_CV else "limited",
         ),
         Evidence(
             title=f"Standard deviation of {signal.column}",
@@ -40,5 +48,8 @@ def build_variance_evidence(
             value=round(std, 4),
             supporting_signal=SignalType.LOW_VARIANCE,
             related_column=signal.column,
+            method="descriptive distribution statistics",
+            sample_size=len(series),
+            direction="context",
         ),
     ]

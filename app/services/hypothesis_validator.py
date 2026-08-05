@@ -6,6 +6,18 @@ from app.schemas.validated_hypothesis import (
     ValidatedHypothesisReport,
     Finding,
 )
+from app.services.thresholds import (
+    CARDINALITY_LOW_RATIO,
+    CONCENTRATION_TOP1_LOW,
+    CONCENTRATION_TOP1_WARNING,
+    HIGH_CARDINALITY_RATIO,
+    LOW_VARIANCE_CV,
+    LOW_VARIANCE_REFUTE_CV,
+    MISSING_RATE_LOW,
+    MISSING_RATE_WARNING,
+    SKEWNESS_WARNING_ABS,
+    TREND_MIN_ABS_GROWTH_RATE,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -18,13 +30,13 @@ from app.schemas.validated_hypothesis import (
 _VALIDATION_RULES: dict[SignalType, dict[str, dict]] = {
     SignalType.RIGHT_SKEWED: {
         "skewness": {
-            "supporting_if": lambda v: v > 0.5,
+            "supporting_if": lambda v: v > SKEWNESS_WARNING_ABS,
             "contradicting_if": lambda v: v <= 0,
         },
     },
     SignalType.LEFT_SKEWED: {
         "skewness": {
-            "supporting_if": lambda v: v < -0.5,
+            "supporting_if": lambda v: v < -SKEWNESS_WARNING_ABS,
             "contradicting_if": lambda v: v >= 0,
         },
     },
@@ -36,38 +48,38 @@ _VALIDATION_RULES: dict[SignalType, dict[str, dict]] = {
     },
     SignalType.INCREASING_TREND: {
         "growth_rate": {
-            "supporting_if": lambda v: v > 0.05,
+            "supporting_if": lambda v: v > TREND_MIN_ABS_GROWTH_RATE,
             "contradicting_if": lambda v: v <= 0,
         },
     },
     SignalType.DECREASING_TREND: {
         "growth_rate": {
-            "supporting_if": lambda v: v < -0.05,
+            "supporting_if": lambda v: v < -TREND_MIN_ABS_GROWTH_RATE,
             "contradicting_if": lambda v: v >= 0,
         },
     },
     SignalType.HIGH_CONCENTRATION: {
         "top_1_share": {
-            "supporting_if": lambda v: v > 0.5,
-            "contradicting_if": lambda v: v <= 0.3,
+            "supporting_if": lambda v: v > CONCENTRATION_TOP1_WARNING,
+            "contradicting_if": lambda v: v <= CONCENTRATION_TOP1_LOW,
         },
     },
     SignalType.HIGH_MISSING_RATE: {
         "null_percentage": {
-            "supporting_if": lambda v: v > 20,
-            "contradicting_if": lambda v: v <= 5,
+            "supporting_if": lambda v: v > MISSING_RATE_WARNING,
+            "contradicting_if": lambda v: v <= MISSING_RATE_LOW,
         },
     },
     SignalType.HIGH_CARDINALITY: {
         "unique_ratio": {
-            "supporting_if": lambda v: v > 0.9,
-            "contradicting_if": lambda v: v <= 0.5,
+            "supporting_if": lambda v: v > HIGH_CARDINALITY_RATIO,
+            "contradicting_if": lambda v: v <= CARDINALITY_LOW_RATIO,
         },
     },
     SignalType.LOW_VARIANCE: {
         "coefficient_of_variation": {
-            "supporting_if": lambda v: v < 0.05,
-            "contradicting_if": lambda v: v >= 0.1,
+            "supporting_if": lambda v: v < LOW_VARIANCE_CV,
+            "contradicting_if": lambda v: v >= LOW_VARIANCE_REFUTE_CV,
         },
     },
 }

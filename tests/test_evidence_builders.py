@@ -44,7 +44,8 @@ class TestDistributionEvidence:
         signal = _signal(SignalType.RIGHT_SKEWED, "value")
         evidence = build_distribution_evidence(right_skewed_df, profile, signal)
         metrics = {e.metric for e in evidence}
-        assert metrics == {"mean", "median", "std", "skewness"}
+        assert {"mean", "median", "std", "skewness"}.issubset(metrics)
+        assert "count" in metrics
 
     def test_values_are_numeric(self, right_skewed_df):
         profile = _profile(right_skewed_df)
@@ -122,7 +123,9 @@ class TestTrendEvidence:
         signal = _signal(SignalType.INCREASING_TREND, "sales")
         evidence = build_trend_evidence(increasing_trend_df, profile, signal)
         metrics = {e.metric for e in evidence}
-        assert metrics == {"first_val", "last_val", "absolute_change", "growth_rate"}
+        assert {"first_val", "last_val", "absolute_change", "growth_rate"}.issubset(metrics)
+        assert "trend_points" in metrics
+        assert "r_squared" in metrics
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -233,7 +236,8 @@ class TestGenerateEvidenceForHypothesis:
         evidence = generate_evidence_for_hypothesis(
             right_skewed_df, profile, hypothesis, signal_report
         )
-        assert len(evidence) == 4  # mean, median, std, skewness
+        metrics = {e.metric for e in evidence}
+        assert {"mean", "median", "std", "skewness"}.issubset(metrics)
 
     def test_no_matching_signal_returns_empty(self, right_skewed_df):
         profile = _profile(right_skewed_df)
@@ -273,4 +277,5 @@ class TestGenerateAllEvidence:
             right_skewed_df, profile, hypothesis_report, signal_report
         )
         assert len(result) == 1
-        assert len(result[0]) == 4
+        metrics = {e.metric for e in result[0]}
+        assert {"mean", "median", "std", "skewness"}.issubset(metrics)

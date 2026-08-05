@@ -153,12 +153,56 @@ class MockNarrativeGenerator:
             "为未确定的假设收集更多数据。",
         ]
 
+        supported_titles = [
+            f.title for f in report.findings if f.status.value == "supported"
+        ]
+        inconclusive_titles = [
+            f.title for f in report.findings if f.status.value == "inconclusive"
+        ]
+
+        plain_language_summary = (
+            f"系统发现 {es.supported_count} 个有证据支持的模式，"
+            f"{es.inconclusive_count} 个问题仍需要更多数据验证。"
+            f"当前整体风险为 {es.overall_risk}，"
+            f"结论置信度为 {es.overall_confidence}。"
+        )
+
+        what_happened = [
+            f"发现“{title}”这一模式。"
+            for title in supported_titles[:5]
+        ] or ["没有发现足够证据支持的明确模式。"]
+
+        why_it_matters = [
+            f.business_impact
+            for f in report.findings
+            if f.status.value == "supported"
+        ][:5]
+        if not why_it_matters:
+            why_it_matters = [
+                "当前证据不足以支持明确业务判断，需要谨慎解读结果。"
+            ]
+
+        confidence_notes = []
+        if inconclusive_titles:
+            confidence_notes.append(
+                "以下问题仍未确定，需要更多数据验证："
+                + "、".join(inconclusive_titles[:3])
+            )
+        confidence_notes.append(
+            "所有结论均来自确定性统计证据，未将相关性直接表述为因果关系。"
+        )
+
         narrative = Narrative(
             executive_summary=executive_summary,
             key_findings=key_findings,
             supporting_evidence_summary=supporting_evidence_summary,
             business_impact_summary=business_impact_summary,
             recommendations=recommendations,
+            plain_language_summary=plain_language_summary,
+            what_happened=what_happened,
+            why_it_matters=why_it_matters,
+            what_to_check_next=recommendations,
+            confidence_notes=confidence_notes,
         )
 
         metadata = ModelMetadata(

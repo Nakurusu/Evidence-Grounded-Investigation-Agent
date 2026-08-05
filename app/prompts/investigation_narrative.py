@@ -23,7 +23,7 @@ This prompt is PROVIDER-AGNOSTIC.  It works with any LLM that accepts
 system + user messages.
 """
 
-PROMPT_VERSION = "1.0.0"
+PROMPT_VERSION = "1.2.0"
 
 # ---------------------------------------------------------------------------
 # System prompt — sets the role, tone, and output contract
@@ -37,6 +37,7 @@ SYSTEM_PROMPT = """\
 - **与业务相关**：解释每个发现为什么重要，而不仅仅是发现是什么。
 - **诚实对待不确定性**：区分已确认的模式（支持的假设）、已被否定的假设（被驳回的假设）和有待进一步研究的问题（未确定的假设）。
 - **可执行**：每项建议都应足够具体，让业务相关人员知道下一步该做什么。
+- **普通用户可读**：优先用清晰、简短的业务语言解释“发生了什么、为什么重要、下一步查什么”，避免把技术指标直接堆给用户。
 
 不要：
 - 编造输入报告中不存在的统计数据。
@@ -66,11 +67,15 @@ USER_MESSAGE_TEMPLATE = """\
     - 证据是支持还是否定了它（状态）
     - 我们的置信度如何（置信度等级）
 
-3.  **支持证据**：提供支持关键发现的证据的叙事性总结。在能够增强论证力度的地方引用具体指标和数值。如果证据存在矛盾或不确定性，请如实说明。
+3.  **支持证据**：提供支持关键发现的证据的叙事性总结。在能够增强论证力度的地方引用具体指标和数值。如果报告中包含 evidence_strength、uncertainty_notes、method、threshold、sample_size 或 limitation，请优先用这些字段说明证据强弱、方法和限制。如果证据存在矛盾或不确定性，请如实说明。
 
 4.  **业务影响**：解释这些发现为什么重要。描述它们所代表的风险和机会。优先考虑高置信度且状态为"已支持"的发现。
 
 5.  **建议**：列出按优先级排序的下一步行动。每项建议应具体、可执行，并可追溯到报告中的某个发现。
+
+6.  **普通语言字段**：如果 schema 中包含 plain_language_summary、what_happened、why_it_matters、what_to_check_next、confidence_notes，请填充这些字段。它们应面向不熟悉统计术语的用户，避免绝对因果表述。
+
+7.  **边界约束**：不得改变任何 finding 的 status、confidence 或 evidence_strength。不得把 supported 表述为确定因果，只能说“数据支持该模式”。
 
 ## 输出格式
 
