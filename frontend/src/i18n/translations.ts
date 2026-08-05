@@ -19,6 +19,11 @@ export interface Translations {
       evidence: { title: string; desc: string };
       narrative: { title: string; desc: string };
     };
+    questionInput: {
+      label: string;
+      placeholder: string;
+      help: string;
+    };
   };
 
   investigation: {
@@ -60,6 +65,8 @@ export interface Translations {
     };
     overview: {
       executiveSummary: string;
+      investigationQuestion: string;
+      explorationMode: string;
       dataset: string;
       hypotheses: string;
       supported: string;
@@ -68,6 +75,12 @@ export interface Translations {
       riskLevel: string;
       confidence: string;
       highestPriority: string;
+      causeCandidates: string;
+      candidateScore: string;
+      candidateEvidence: string;
+      candidateLimitations: string;
+      candidateNextStep: string;
+      noCauseCandidates: string;
       rowsColumns: (rows: number, cols: number) => string;
       columnTypes: {
         numeric: string;
@@ -75,6 +88,14 @@ export interface Translations {
         datetime: string;
         text: string;
         boolean: string;
+      };
+      columnRoles: {
+        title: string;
+        metric: string;
+        dimension: string;
+        time: string;
+        entity: string;
+        identifier: string;
       };
       quality: string;
       qualityRisk: string;
@@ -125,6 +146,10 @@ export interface Translations {
       source: string;
       unresolvedAreas: string;
       affects: string;
+      runDrilldown: string;
+      running: string;
+      runFailed: string;
+      drilldownResults: string;
     };
     crossDataset: {
       tab: string;

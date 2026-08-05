@@ -26,6 +26,11 @@ const zh: Translations = {
         desc: "用自然语言解释分析结果，而不是简单罗列数据。",
       },
     },
+    questionInput: {
+      label: "调查问题",
+      placeholder: "可选，例如：为什么收入下降？哪些地区表现异常？",
+      help: "留空时，系统会按探索驱动模式寻找风险、异常和机会。",
+    },
   },
 
   investigation: {
@@ -67,6 +72,8 @@ const zh: Translations = {
     },
     overview: {
       executiveSummary: "执行摘要",
+      investigationQuestion: "调查问题",
+      explorationMode: "未提供具体问题，系统已按探索驱动模式调查数据集。",
       dataset: "数据集",
       hypotheses: "假设",
       supported: "已支持",
@@ -75,6 +82,12 @@ const zh: Translations = {
       riskLevel: "风险等级",
       confidence: "整体置信度",
       highestPriority: "最高优先级发现",
+      causeCandidates: "候选原因",
+      candidateScore: "优先级分数",
+      candidateEvidence: "支持证据",
+      candidateLimitations: "限制说明",
+      candidateNextStep: "下一步验证",
+      noCauseCandidates: "当前证据不足以生成候选原因。",
       rowsColumns: (rows, cols) => `${rows} 行 × ${cols} 列`,
       columnTypes: {
         numeric: "数值",
@@ -82,6 +95,14 @@ const zh: Translations = {
         datetime: "时间",
         text: "文本",
         boolean: "布尔",
+      },
+      columnRoles: {
+        title: "字段角色",
+        metric: "指标",
+        dimension: "维度",
+        time: "时间",
+        entity: "实体",
+        identifier: "标识符",
       },
       quality: "数据质量",
       qualityRisk: "质量风险",
@@ -133,6 +154,10 @@ const zh: Translations = {
       source: "来源",
       unresolvedAreas: "未解决问题",
       affects: "影响",
+      runDrilldown: "运行分析",
+      running: "分析中...",
+      runFailed: "后续分析运行失败。",
+      drilldownResults: "后续分析结果",
     },
     crossDataset: {
       tab: "跨数据集",

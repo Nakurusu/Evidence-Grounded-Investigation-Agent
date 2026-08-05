@@ -11,6 +11,8 @@ import type {
   CrossDatasetRelation,
   Evidence,
   QualitySummary,
+  CauseCandidate,
+  DrillDownResult,
 } from "@/api/types";
 import type { HypothesisStatus, HypothesisConfidence } from "@/api/types";
 import {
@@ -35,6 +37,7 @@ import {
   PIPELINE_STAGES,
   type PipelineStage,
 } from "@/hooks/useTaskPolling";
+import { runFollowUpDrilldown } from "@/api/task";
 import { cn } from "@/lib/utils";
 import { formatMetricValue, metricLabel } from "@/lib/metrics";
 
@@ -199,6 +202,7 @@ export function InvestigationPage() {
               <OverviewTab
                 es={report.investigation_report.executive_summary}
                 ds={report.investigation_report.dataset_summary}
+                causeCandidates={report.investigation_report.cause_candidates ?? []}
                 quality={report.investigation_report.quality_summary}
                 t={t}
               />
@@ -219,6 +223,7 @@ export function InvestigationPage() {
             {activeTab === "interactive" && (
               <InteractiveTab
                 report={report}
+                taskId={taskId}
                 t={t}
               />
             )}
@@ -409,16 +414,29 @@ function ProcessingView({
 function OverviewTab({
   es,
   ds,
+  causeCandidates,
   quality,
   t,
 }: {
   es: ExecutiveSummary;
   ds: DatasetSummary;
+  causeCandidates: CauseCandidate[];
   quality: QualitySummary | null;
   t: Translations;
 }) {
   return (
     <div className="mx-auto max-w-3xl space-y-10">
+      <section>
+        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">
+          {t.investigation.overview.investigationQuestion}
+        </p>
+        <div className="rounded-lg border border-border bg-surface p-4">
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            {es.investigation_question ?? t.investigation.overview.explorationMode}
+          </p>
+        </div>
+      </section>
+
       {/* Stat cards */}
       <section>
         <h2 className="mb-4 text-lg font-semibold text-foreground">
@@ -475,6 +493,69 @@ function OverviewTab({
         )}
       </section>
 
+      <section>
+        <h2 className="mb-4 text-lg font-semibold text-foreground">
+          {t.investigation.overview.causeCandidates}
+        </h2>
+        {causeCandidates.length > 0 ? (
+          <div className="space-y-3">
+            {causeCandidates.map((candidate, index) => (
+              <div
+                key={`${candidate.title}-${index}`}
+                className="rounded-lg border border-border bg-surface p-4"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <h3 className="text-sm font-semibold text-foreground">
+                    {candidate.title}
+                  </h3>
+                  <span className="rounded-full bg-accent-muted px-2 py-0.5 text-xs font-medium text-accent">
+                    {t.investigation.overview.candidateScore}:{" "}
+                    {candidate.score.toFixed(0)}
+                  </span>
+                </div>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                  {candidate.explanation}
+                </p>
+                {candidate.supporting_evidence_titles.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-xs font-medium text-muted">
+                      {t.investigation.overview.candidateEvidence}
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {candidate.supporting_evidence_titles.join(" · ")}
+                    </p>
+                  </div>
+                )}
+                {candidate.limitations.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-xs font-medium text-muted">
+                      {t.investigation.overview.candidateLimitations}
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {candidate.limitations.join(" · ")}
+                    </p>
+                  </div>
+                )}
+                <div className="mt-3 rounded-md bg-surface-elevated px-3 py-2">
+                  <p className="text-xs font-medium text-muted">
+                    {t.investigation.overview.candidateNextStep}
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {candidate.next_validation_step}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-lg border border-border bg-surface p-4">
+            <p className="text-sm text-muted-foreground">
+              {t.investigation.overview.noCauseCandidates}
+            </p>
+          </div>
+        )}
+      </section>
+
       {/* Dataset */}
       <section>
         <h2 className="mb-4 text-lg font-semibold text-foreground">
@@ -506,6 +587,34 @@ function OverviewTab({
                 <span className="opacity-70">{c.count}</span>
               </span>
             ))}
+        </div>
+
+        <div className="mt-5 space-y-2">
+          <p className="text-xs font-medium text-muted">
+            {t.investigation.overview.columnRoles.title}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { label: t.investigation.overview.columnRoles.metric, count: ds.metric_columns?.length ?? 0, color: "bg-info-muted text-info" },
+              { label: t.investigation.overview.columnRoles.dimension, count: ds.dimension_columns?.length ?? 0, color: "bg-accent-muted text-accent" },
+              { label: t.investigation.overview.columnRoles.time, count: ds.time_columns?.length ?? 0, color: "bg-success-muted text-success" },
+              { label: t.investigation.overview.columnRoles.entity, count: ds.entity_columns?.length ?? 0, color: "bg-warning-muted text-warning" },
+              { label: t.investigation.overview.columnRoles.identifier, count: ds.identifier_columns?.length ?? 0, color: "bg-surface-elevated text-muted-foreground" },
+            ]
+              .filter((c) => c.count > 0)
+              .map((c) => (
+                <span
+                  key={c.label}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",
+                    c.color,
+                  )}
+                >
+                  {c.label}
+                  <span className="opacity-70">{c.count}</span>
+                </span>
+              ))}
+          </div>
         </div>
       </section>
 
@@ -1113,12 +1222,21 @@ function NarrativeListSection({
 
 function InteractiveTab({
   report,
+  taskId,
   t,
 }: {
   report: AIInvestigationReport;
+  taskId: string | undefined;
   t: Translations;
 }) {
   const interactive = report.interactive_investigation;
+  const [drilldownSteps, setDrilldownSteps] = useState<DrillDownResult[]>(
+    interactive?.drilldown_steps ?? [],
+  );
+  const [runningQuestionIndex, setRunningQuestionIndex] = useState<number | null>(
+    null,
+  );
+  const [drilldownError, setDrilldownError] = useState<string | null>(null);
 
   if (!interactive) {
     return (
@@ -1136,6 +1254,22 @@ function InteractiveTab({
     investigation_paths: paths,
     unresolved_areas: unresolved,
   } = interactive;
+
+  const handleRunDrilldown = async (questionIndex: number) => {
+    if (!taskId) return;
+    setRunningQuestionIndex(questionIndex);
+    setDrilldownError(null);
+    try {
+      const result = await runFollowUpDrilldown(taskId, questionIndex);
+      setDrilldownSteps((current) => [...current, result]);
+    } catch (error) {
+      setDrilldownError(
+        error instanceof Error ? error.message : t.investigation.interactive.runFailed,
+      );
+    } finally {
+      setRunningQuestionIndex(null);
+    }
+  };
 
   return (
     <div className="mx-auto max-w-3xl space-y-12">
@@ -1166,6 +1300,23 @@ function InteractiveTab({
                 <span className="text-xs text-muted">{q.category}</span>
               </div>
               <p className="mb-2 text-sm text-foreground">{q.question}</p>
+
+              {q.category === "drill_down" && (
+                <button
+                  type="button"
+                  disabled={!taskId || runningQuestionIndex === i}
+                  onClick={() => handleRunDrilldown(i)}
+                  className={cn(
+                    "mb-3 inline-flex items-center gap-1.5 rounded-md border border-accent px-2.5 py-1.5 text-xs font-medium text-accent transition-colors",
+                    "hover:bg-accent-muted disabled:cursor-not-allowed disabled:opacity-60",
+                  )}
+                >
+                  {runningQuestionIndex === i
+                    ? t.investigation.interactive.running
+                    : t.investigation.interactive.runDrilldown}
+                  <ArrowRight className="h-3 w-3" />
+                </button>
+              )}
 
               {/* Related findings */}
               {q.related_finding_titles.length > 0 && (
@@ -1198,13 +1349,122 @@ function InteractiveTab({
             </div>
           ))}
         </div>
+        {drilldownError && (
+          <p className="mt-3 rounded-md bg-danger-muted p-3 text-sm text-danger">
+            {drilldownError}
+          </p>
+        )}
       </section>
+
+      {/* Drill-down Results */}
+      {drilldownSteps.length > 0 && (
+        <section>
+          <h2 className="mb-4 text-lg font-semibold text-foreground">
+            {t.investigation.interactive.drilldownResults}
+          </h2>
+          <div className="space-y-4">
+            {drilldownSteps.map((step) => (
+              <div
+                key={step.step_id}
+                className="rounded-lg border border-border bg-surface p-4"
+              >
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <span
+                    className={cn(
+                      "inline-flex rounded-full px-2 py-0.5 text-xs font-medium",
+                      step.status === "completed"
+                        ? "bg-success-muted text-success"
+                        : "bg-warning-muted text-warning",
+                    )}
+                  >
+                    {step.status}
+                  </span>
+                  <span className="text-xs text-muted">{step.analysis_type}</span>
+                </div>
+                <p className="mb-2 text-sm font-medium text-foreground">
+                  {step.question}
+                </p>
+                <p className="text-sm text-muted-foreground">{step.summary}</p>
+
+                {step.related_columns.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-1">
+                    {step.related_columns.map((column) => (
+                      <span
+                        key={column}
+                        className="inline-flex rounded bg-accent-muted px-1.5 py-0.5 text-xs text-accent"
+                      >
+                        {column}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {step.evidence.length > 0 && (
+                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                    {step.evidence.map((item) => (
+                      <div
+                        key={item.label}
+                        className="rounded-md bg-surface-elevated p-3"
+                      >
+                        <p className="text-xs text-muted">{item.label}</p>
+                        <p className="mt-1 text-sm font-semibold text-foreground">
+                          {String(item.value ?? "—")}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {item.description}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {step.sample_records.length > 0 && (
+                  <div className="mt-4 overflow-x-auto rounded-md border border-border">
+                    <table className="min-w-full text-left text-xs">
+                      <thead className="bg-surface-elevated text-muted">
+                        <tr>
+                          {Object.keys(step.sample_records[0]).map((column) => (
+                            <th key={column} className="px-3 py-2 font-medium">
+                              {column}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {step.sample_records.slice(0, 5).map((record, rowIndex) => (
+                          <tr key={rowIndex} className="border-t border-border">
+                            {Object.keys(step.sample_records[0]).map((column) => (
+                              <td key={column} className="px-3 py-2 text-muted-foreground">
+                                {String(record[column] ?? "—")}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {step.limitations.length > 0 && (
+                  <div className="mt-3 space-y-1">
+                    {step.limitations.map((limitation) => (
+                      <p key={limitation} className="text-xs text-muted">
+                        {limitation}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Unresolved Areas */}
       {unresolved.length > 0 && (
         <section>
           <h2 className="mb-4 text-lg font-semibold text-foreground">
-            Unresolved Areas
+            {t.investigation.interactive.unresolvedAreas}
           </h2>
           <div className="space-y-2">
             {unresolved.map((area, i) => (

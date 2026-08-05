@@ -24,10 +24,12 @@ export function UploadZone() {
     state,
     primaryFile,
     secondaryFiles,
+    investigationQuestion,
     showSecondary,
     setPrimary,
     addSecondary,
     removeSecondary,
+    setInvestigationQuestion,
     setShowSecondary,
     start,
     reset,
@@ -53,6 +55,27 @@ export function UploadZone() {
           onRemove={reset}
           disabled={!isIdle}
         />
+      )}
+
+      {hasFile && isIdle && (
+        <div className="space-y-2 text-left animate-slide-up">
+          <label
+            htmlFor="investigation-question"
+            className="text-sm font-medium text-foreground"
+          >
+            {t.home.questionInput.label}
+          </label>
+          <textarea
+            id="investigation-question"
+            value={investigationQuestion}
+            onChange={(event) => setInvestigationQuestion(event.target.value)}
+            placeholder={t.home.questionInput.placeholder}
+            className="min-h-20 w-full resize-y rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-muted focus:border-accent"
+          />
+          <p className="text-xs text-muted">
+            {t.home.questionInput.help}
+          </p>
+        </div>
       )}
 
       {/* --- Secondary files toggle (Phase 9) ------------------------- */}

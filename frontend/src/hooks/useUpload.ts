@@ -20,6 +20,7 @@ export function useUpload() {
   const [state, setState] = useState<UploadState>({ phase: "idle" });
   const [primaryFile, setPrimaryFile] = useState<File | null>(null);
   const [secondaryFiles, setSecondaryFiles] = useState<File[]>([]);
+  const [investigationQuestion, setInvestigationQuestion] = useState("");
   const [showSecondary, setShowSecondary] = useState(false);
 
   const setPrimary = useCallback((file: File | null) => {
@@ -44,10 +45,14 @@ export function useUpload() {
       let taskId: string;
 
       if (secondaryFiles.length > 0) {
-        const res = await investigateFiles(primaryFile, secondaryFiles);
+        const res = await investigateFiles(
+          primaryFile,
+          secondaryFiles,
+          investigationQuestion,
+        );
         taskId = res.task_id;
       } else {
-        const res = await uploadFile(primaryFile);
+        const res = await uploadFile(primaryFile, investigationQuestion);
         taskId = res.task_id;
       }
 
@@ -57,12 +62,13 @@ export function useUpload() {
         err instanceof Error ? err.message : "Upload failed. Please try again.";
       setState({ phase: "error", message });
     }
-  }, [primaryFile, secondaryFiles, navigate]);
+  }, [primaryFile, secondaryFiles, investigationQuestion, navigate]);
 
   const reset = useCallback(() => {
     setState({ phase: "idle" });
     setPrimaryFile(null);
     setSecondaryFiles([]);
+    setInvestigationQuestion("");
     setShowSecondary(false);
   }, []);
 
@@ -70,10 +76,12 @@ export function useUpload() {
     state,
     primaryFile,
     secondaryFiles,
+    investigationQuestion,
     showSecondary,
     setPrimary,
     addSecondary,
     removeSecondary,
+    setInvestigationQuestion,
     setShowSecondary,
     start,
     reset,

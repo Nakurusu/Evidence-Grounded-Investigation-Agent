@@ -26,6 +26,11 @@ const en: Translations = {
         desc: "Natural-language reports that explain findings, not just list them.",
       },
     },
+    questionInput: {
+      label: "Investigation question",
+      placeholder: "Optional, e.g. Why did revenue decline?",
+      help: "Leave this blank to let the system explore the dataset for risks, anomalies, and opportunities.",
+    },
   },
 
   investigation: {
@@ -67,6 +72,8 @@ const en: Translations = {
     },
     overview: {
       executiveSummary: "Executive Summary",
+      investigationQuestion: "Investigation Question",
+      explorationMode: "No specific question was provided. The system ran an exploration-driven investigation.",
       dataset: "Dataset",
       hypotheses: "Hypotheses",
       supported: "Supported",
@@ -75,6 +82,12 @@ const en: Translations = {
       riskLevel: "Risk Level",
       confidence: "Overall confidence",
       highestPriority: "Highest Priority Findings",
+      causeCandidates: "Cause Candidates",
+      candidateScore: "Priority score",
+      candidateEvidence: "Supporting Evidence",
+      candidateLimitations: "Limitations",
+      candidateNextStep: "Next validation step",
+      noCauseCandidates: "There is not enough evidence to generate cause candidates yet.",
       rowsColumns: (rows, cols) => `${rows} rows × ${cols} columns`,
       columnTypes: {
         numeric: "Numeric",
@@ -82,6 +95,14 @@ const en: Translations = {
         datetime: "Datetime",
         text: "Text",
         boolean: "Boolean",
+      },
+      columnRoles: {
+        title: "Column Roles",
+        metric: "Metric",
+        dimension: "Dimension",
+        time: "Time",
+        entity: "Entity",
+        identifier: "Identifier",
       },
       quality: "Data Quality",
       qualityRisk: "Quality Risk",
@@ -133,6 +154,10 @@ const en: Translations = {
       source: "Source",
       unresolvedAreas: "Unresolved Areas",
       affects: "Affects",
+      runDrilldown: "Run Analysis",
+      running: "Running...",
+      runFailed: "Follow-up analysis failed.",
+      drilldownResults: "Follow-up Analysis Results",
     },
     crossDataset: {
       tab: "Cross-Dataset",

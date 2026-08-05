@@ -26,6 +26,13 @@ export type HypothesisConfidence = "high" | "medium" | "low";
 
 export type ColumnType = "numeric" | "categorical" | "datetime" | "boolean" | "text";
 
+export type ColumnSemanticRole =
+  | "metric"
+  | "dimension"
+  | "time"
+  | "entity"
+  | "identifier";
+
 // -- Task ------------------------------------------------------------------
 
 export interface TaskProgress {
@@ -45,6 +52,7 @@ export interface TaskResponse {
   id: string;
   status: TaskStatus;
   filename: string;
+  investigation_question: string | null;
   created_at: string;
   finished_at: string | null;
   result: AIInvestigationReport | null;
@@ -56,6 +64,7 @@ export interface TaskResponse {
 // -- Investigation Report --------------------------------------------------
 
 export interface ExecutiveSummary {
+  investigation_question: string | null;
   total_hypotheses: number;
   supported_count: number;
   refuted_count: number;
@@ -73,6 +82,11 @@ export interface DatasetSummary {
   datetime_columns: string[];
   text_columns: string[];
   boolean_columns: string[];
+  metric_columns: string[];
+  dimension_columns: string[];
+  time_columns: string[];
+  entity_columns: string[];
+  identifier_columns: string[];
 }
 
 export interface Evidence {
@@ -110,6 +124,18 @@ export interface Finding {
   uncertainty_notes: string[];
 }
 
+export interface CauseCandidate {
+  title: string;
+  explanation: string;
+  score: number;
+  confidence: HypothesisConfidence;
+  related_columns: string[];
+  supporting_finding_titles: string[];
+  supporting_evidence_titles: string[];
+  limitations: string[];
+  next_validation_step: string;
+}
+
 export interface QualitySummary {
   issue_count: number;
   risk_level: string;
@@ -120,6 +146,7 @@ export interface InvestigationReport {
   executive_summary: ExecutiveSummary;
   dataset_summary: DatasetSummary;
   findings: Finding[];
+  cause_candidates: CauseCandidate[];
   next_steps: string[];
   quality_summary: QualitySummary | null;
 }
@@ -156,6 +183,25 @@ export interface FollowUpQuestion {
   required_data: string[];
 }
 
+export interface DrillDownEvidence {
+  label: string;
+  value: string | number | null;
+  description: string;
+}
+
+export interface DrillDownResult {
+  step_id: string;
+  question: string;
+  status: string;
+  analysis_type: string;
+  summary: string;
+  related_columns: string[];
+  evidence: DrillDownEvidence[];
+  sample_records: Record<string, string | number | boolean | null>[];
+  limitations: string[];
+  generated_at: string;
+}
+
 export interface DataGap {
   gap: string;
   impact: string;
@@ -175,6 +221,7 @@ export interface InteractiveInvestigationReport {
   data_gaps: DataGap[];
   investigation_paths: InvestigationPath[];
   unresolved_areas: string[];
+  drilldown_steps: DrillDownResult[];
 }
 
 // -- Cross-Dataset (Phase 9) -----------------------------------------------
