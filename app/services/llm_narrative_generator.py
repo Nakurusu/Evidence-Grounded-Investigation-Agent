@@ -14,7 +14,7 @@ Switching between Mock / OpenAI / future providers is a config change
 
 import json
 import re
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 
 from openai import OpenAI
 
@@ -125,7 +125,7 @@ class LLMNarrativeGenerator:
             provider="openai",
             model_name=self._model,
             prompt_version=PROMPT_VERSION,
-            generated_at=datetime.now(UTC),
+            generated_at=datetime.now(timezone.utc),
         )
 
         return narrative, metadata

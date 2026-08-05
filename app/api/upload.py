@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, BackgroundTasks, Depends
+from fastapi import APIRouter, UploadFile, BackgroundTasks, Depends, File, Form
 from app.services.pipeline import (
     process_uploaded_file,
     process_multi_dataset_upload,
@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.db.dependencies import get_db
 from app.models.task import Task
 import uuid
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 from app.core.logger import logger
 from app.models.enums import TaskStatus
 
@@ -17,12 +17,23 @@ router = APIRouter(
     tags=["upload"]
 )
 
+
+def _normalize_investigation_question(question: str | None) -> str | None:
+    if question is None:
+        return None
+    cleaned = question.strip()
+    return cleaned or None
+
 @router.post("/")
 async def upload(
     background_tasks: BackgroundTasks, 
-    file: UploadFile,
+    file: UploadFile = File(...),
+    investigation_question: str | None = Form(None),
     db: Session = Depends(get_db)
 ):
+    normalized_question = _normalize_investigation_question(
+        investigation_question
+    )
     logger.info(
         f"received upload: {file.filename}"
     )
@@ -32,7 +43,8 @@ async def upload(
         id=task_id,
         status=TaskStatus.PENDING.value,
         filename=file.filename,
-        created_at=datetime.now(UTC)
+        investigation_question=normalized_question,
+        created_at=datetime.now(timezone.utc)
     )
     db.add(task)
     db.commit()
@@ -53,15 +65,17 @@ async def upload(
 
     return {
         "task_id": task_id,
-        "status": TaskStatus.PENDING.value
+        "status": TaskStatus.PENDING.value,
+        "investigation_question": normalized_question,
     }
 
 
 @router.post("/investigate/")
 async def investigate(
     background_tasks: BackgroundTasks,
-    primary_file: UploadFile,
-    secondary_files: list[UploadFile] | None = None,
+    primary_file: UploadFile = File(...),
+    secondary_files: list[UploadFile] | None = File(None),
+    investigation_question: str | None = Form(None),
     db: Session = Depends(get_db),
 ):
     """Investigate a primary dataset with optional secondary datasets.
@@ -69,6 +83,9 @@ async def investigate(
     Runs the full pipeline on the primary file and cross-dataset analysis
     if secondary files are provided (Phase 9).
     """
+    normalized_question = _normalize_investigation_question(
+        investigation_question
+    )
     logger.info(
         f"received investigation: primary={primary_file.filename}"
         + (
@@ -82,7 +99,8 @@ async def investigate(
         id=task_id,
         status=TaskStatus.PENDING.value,
         filename=primary_file.filename,
-        created_at=datetime.now(UTC),
+        investigation_question=normalized_question,
+        created_at=datetime.now(timezone.utc),
     )
     db.add(task)
     db.commit()
@@ -106,4 +124,5 @@ async def investigate(
         "status": TaskStatus.PENDING.value,
         "primary": primary_file.filename,
         "secondary": [f.filename for f in secondary_files] if secondary_files else [],
+        "investigation_question": normalized_question,
     }

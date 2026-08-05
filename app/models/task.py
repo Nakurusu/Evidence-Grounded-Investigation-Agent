@@ -8,6 +8,7 @@ class Task(Base):
     id = Column(UUID(as_uuid=True), primary_key=True)
     status = Column(String, default=TaskStatus.PENDING.value)
     filename = Column(String, nullable=False)
+    investigation_question = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False)
     finished_at = Column(DateTime(timezone=True))
     result = Column(JSONB)

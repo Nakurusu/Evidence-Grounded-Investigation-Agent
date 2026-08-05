@@ -25,6 +25,7 @@ class TaskResponse(BaseModel):
     id: UUID
     status: TaskStatus
     filename: str
+    investigation_question: str | None = None
     created_at: datetime
     finished_at: datetime | None
     result: dict | None

@@ -179,6 +179,20 @@ class TestDetectConcentration:
         signals = detect_concentration(single_column_df, profile)
         assert len(signals) == 0
 
+    def test_entity_columns_are_not_used_as_dimensions(self):
+        df = pd.DataFrame(
+            {
+                "customer": [f"Customer {i}" for i in range(100)],
+                "segment": ["enterprise"] * 90 + ["smb"] * 10,
+                "revenue": [100] * 90 + [5] * 10,
+            }
+        )
+        profile = _profile(df)
+        signals = detect_concentration(df, profile)
+
+        assert any(s.dimension_column == "segment" for s in signals)
+        assert all(s.dimension_column != "customer" for s in signals)
+
 
 # ═══════════════════════════════════════════════════════════════════════
 # detect_distribution

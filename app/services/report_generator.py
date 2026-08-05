@@ -13,6 +13,8 @@ from app.schemas.investigation_report import (
     QualitySummary,
 )
 from app.schemas.quality import DataQualityReport
+from app.services.cause_ranker import rank_cause_candidates
+from app.services.question_context import rank_findings_by_question
 from app.services.report_templates import _COMPOSITE_TEMPLATES, _FINDING_TEMPLATES
 
 
@@ -260,6 +262,7 @@ def _build_finding(vh: ValidatedHypothesis) -> Finding:
 
 def _build_executive_summary(
     validated: list[ValidatedHypothesis],
+    investigation_question: str | None = None,
 ) -> ExecutiveSummary:
     supported = [vh for vh in validated if vh.status == HypothesisStatus.SUPPORTED]
     refuted = [vh for vh in validated if vh.status == HypothesisStatus.REFUTED]
@@ -276,6 +279,7 @@ def _build_executive_summary(
     overall_confidence = _score_overall_confidence(validated)
 
     return ExecutiveSummary(
+        investigation_question=investigation_question,
         total_hypotheses=total,
         supported_count=len(supported),
         refuted_count=len(refuted),
@@ -302,6 +306,11 @@ def _build_dataset_summary(
         datetime_columns=analyzer_output.get("datetime_columns", []),
         text_columns=analyzer_output.get("text_columns", []),
         boolean_columns=analyzer_output.get("boolean_columns", []),
+        metric_columns=analyzer_output.get("metric_columns", []),
+        dimension_columns=analyzer_output.get("dimension_columns", []),
+        time_columns=analyzer_output.get("time_columns", []),
+        entity_columns=analyzer_output.get("entity_columns", []),
+        identifier_columns=analyzer_output.get("identifier_columns", []),
     )
 
 
@@ -349,10 +358,18 @@ def generate_report(
     profile: DatasetProfile,
     dataset_summary: dict,
     quality_report: DataQualityReport | None = None,
+    investigation_question: str | None = None,
 ) -> InvestigationReport:
     findings = [
         _build_finding(vh) for vh in validation_report.validated
     ]
+    findings = rank_findings_by_question(findings, investigation_question)
+    quality_summary = _build_quality_summary(quality_report)
+    cause_candidates = rank_cause_candidates(
+        findings,
+        investigation_question=investigation_question,
+        quality_summary=quality_summary,
+    )
 
     seen: set[str] = set()
     next_steps: list[str] = []
@@ -363,10 +380,12 @@ def generate_report(
 
     return InvestigationReport(
         executive_summary=_build_executive_summary(
-            validation_report.validated
+            validation_report.validated,
+            investigation_question,
         ),
         dataset_summary=_build_dataset_summary(profile, dataset_summary),
         findings=findings,
+        cause_candidates=cause_candidates,
         next_steps=next_steps,
-        quality_summary=_build_quality_summary(quality_report),
+        quality_summary=quality_summary,
     )

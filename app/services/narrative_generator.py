@@ -23,7 +23,7 @@ Adding a new provider requires:
 The pipeline never changes.
 """
 
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 from typing import Protocol
 
 from app.schemas.investigation_report import InvestigationReport
@@ -209,7 +209,7 @@ class MockNarrativeGenerator:
             provider=self.PROVIDER,
             model_name=self.MODEL_NAME,
             prompt_version="1.0.0",
-            generated_at=datetime.now(UTC),
+            generated_at=datetime.now(timezone.utc),
         )
 
         return narrative, metadata

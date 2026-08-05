@@ -1,9 +1,10 @@
 from pandas import DataFrame
 
-from app.models.enums import ColumnType, SignalType
+from app.models.enums import SignalType
 from app.schemas.evidence import Evidence
 from app.schemas.profile import DatasetProfile
 from app.schemas.signal import Signal
+from app.services.column_selection import select_metric_columns
 from app.services.statistics import compute_concentration_metrics
 from app.services.thresholds import CONCENTRATION_TOP1_WARNING
 
@@ -20,11 +21,7 @@ def build_concentration_evidence(
     metric_cols = (
         [signal.metric_column]
         if signal.metric_column
-        else [
-            c.name
-            for c in profile.columns
-            if c.dtype == ColumnType.NUMERIC and not c.is_identifier
-        ]
+        else select_metric_columns(profile)
     )
 
     evidence: list[Evidence] = []

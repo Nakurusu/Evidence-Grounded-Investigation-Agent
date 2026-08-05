@@ -13,6 +13,14 @@ class ColumnType(str, Enum):
     BOOLEAN = "boolean"
     TEXT = "text"
 
+
+class ColumnSemanticRole(str, Enum):
+    METRIC = "metric"
+    DIMENSION = "dimension"
+    TIME = "time"
+    ENTITY = "entity"
+    IDENTIFIER = "identifier"
+
 class SignalType(str, Enum):
     HIGH_MISSING_RATE = "high_missing_rate"
     HIGH_CARDINALITY = "high_cardinality"

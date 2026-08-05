@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Callable
 
 import pandas as pd
@@ -206,6 +206,7 @@ def _update_task_progress(
 def _run_full_pipeline(
     df: pd.DataFrame,
     quality_report: DataQualityReport | None = None,
+    investigation_question: str | None = None,
     on_stage: ProgressCallback | None = None,
 ) -> PipelineOutputs:
     def stage(
@@ -281,7 +282,13 @@ def _run_full_pipeline(
         STAGE_DETAILS["report"],
     )
     summary = analyze_dataframe(df, profile)
-    report = generate_report(validation_report, profile, summary, quality_report)
+    report = generate_report(
+        validation_report,
+        profile,
+        summary,
+        quality_report,
+        investigation_question=investigation_question,
+    )
 
     stage(
         "narrative",
@@ -382,14 +389,17 @@ def process_uploaded_file(task_id, file):
             _update_task_progress(db, task, stage, completed, percent, detail)
 
         outputs = _run_full_pipeline(
-            df, quality_report=quality_report, on_stage=on_stage
+            df,
+            quality_report=quality_report,
+            investigation_question=task.investigation_question if task else None,
+            on_stage=on_stage,
         )
         logger.info(outputs.question_report.model_dump())
 
         logger.info(f"completed task {task_id}")
         task.status = TaskStatus.COMPLETED.value
         task.result = outputs.ai_report.model_dump(mode="json")
-        task.finished_at = datetime.now(UTC)
+        task.finished_at = datetime.now(timezone.utc)
         _update_task_progress(
             db,
             task,
@@ -416,7 +426,7 @@ def process_uploaded_file(task_id, file):
         logger.exception(f"task failed: {task_id}")
         task.status = TaskStatus.FAILED.value
         task.error_message = str(e)
-        task.finished_at = datetime.now(UTC)
+        task.finished_at = datetime.now(timezone.utc)
         task.current_stage = current_stage
         task.progress = _progress_payload(
             stage=current_stage,
@@ -463,6 +473,7 @@ def process_multi_dataset_upload(
         outputs = _run_full_pipeline(
             primary_df,
             quality_report=primary_quality_report,
+            investigation_question=task.investigation_question if task else None,
             on_stage=on_primary_stage,
         )
 
@@ -541,7 +552,7 @@ def process_multi_dataset_upload(
         logger.info(f"completed multi-dataset task {task_id}")
         task.status = TaskStatus.COMPLETED.value
         task.result = outputs.ai_report.model_dump(mode="json")
-        task.finished_at = datetime.now(UTC)
+        task.finished_at = datetime.now(timezone.utc)
         _update_task_progress(
             db,
             task,
@@ -570,7 +581,7 @@ def process_multi_dataset_upload(
         logger.exception(f"multi-dataset task failed: {task_id}")
         task.status = TaskStatus.FAILED.value
         task.error_message = str(e)
-        task.finished_at = datetime.now(UTC)
+        task.finished_at = datetime.now(timezone.utc)
         task.current_stage = current_stage
         task.progress = _progress_payload(
             stage=current_stage,

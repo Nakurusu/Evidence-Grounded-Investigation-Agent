@@ -20,6 +20,7 @@ from app.models.enums import (
     HypothesisConfidence,
     HypothesisStatus,
     ColumnType,
+    ColumnSemanticRole,
 )
 
 
@@ -30,11 +31,13 @@ def _profile() -> DatasetProfile:
         columns=[
             ColumnProfile(
                 name="revenue", dtype=ColumnType.NUMERIC,
+                semantic_role=ColumnSemanticRole.METRIC,
                 is_identifier=False, null_count=0,
                 null_percentage=0, unique_count=100,
             ),
             ColumnProfile(
                 name="region", dtype=ColumnType.CATEGORICAL,
+                semantic_role=ColumnSemanticRole.DIMENSION,
                 is_identifier=False, null_count=0,
                 null_percentage=0, unique_count=5,
             ),
@@ -51,6 +54,11 @@ def _analyzer_output() -> dict:
         "datetime_columns": [],
         "boolean_columns": [],
         "text_columns": [],
+        "metric_columns": ["revenue"],
+        "dimension_columns": ["region"],
+        "time_columns": [],
+        "entity_columns": [],
+        "identifier_columns": [],
     }
 
 
@@ -250,6 +258,14 @@ class TestGenerateReport:
         assert "revenue" in ds.numeric_columns
         assert "region" in ds.categorical_columns
 
+    def test_dataset_summary_includes_semantic_roles(self):
+        vh = _vh("f1")
+        validation = ValidatedHypothesisReport(validated=[vh], findings=[])
+        report = generate_report(validation, _profile(), _analyzer_output())
+        ds = report.dataset_summary
+        assert ds.metric_columns == ["revenue"]
+        assert ds.dimension_columns == ["region"]
+
     def test_report_is_serializable(self):
         vh = _vh("f1")
         validation = ValidatedHypothesisReport(validated=[vh], findings=[])
@@ -257,4 +273,67 @@ class TestGenerateReport:
         d = report.model_dump()
         assert "executive_summary" in d
         assert "findings" in d
+        assert "cause_candidates" in d
         assert "next_steps" in d
+
+    def test_cause_candidates_populated(self):
+        vh = _vh("Revenue is decreasing", signals=[SignalType.DECREASING_TREND])
+        validation = ValidatedHypothesisReport(validated=[vh], findings=[])
+        report = generate_report(validation, _profile(), _analyzer_output())
+        assert len(report.cause_candidates) == 1
+        assert report.cause_candidates[0].supporting_finding_titles == [
+            "Revenue is decreasing"
+        ]
+
+    def test_investigation_question_is_in_summary(self):
+        vh = _vh("f1")
+        validation = ValidatedHypothesisReport(validated=[vh], findings=[])
+        report = generate_report(
+            validation,
+            _profile(),
+            _analyzer_output(),
+            investigation_question="为什么 revenue 下降？",
+        )
+        assert (
+            report.executive_summary.investigation_question
+            == "为什么 revenue 下降？"
+        )
+
+    def test_investigation_question_ranks_related_findings_first(self):
+        concentration = _vh(
+            "Region is concentrated",
+            signals=[SignalType.HIGH_CONCENTRATION],
+            supporting_evidence=[
+                _evidence(
+                    "top_1_share",
+                    0.82,
+                    SignalType.HIGH_CONCENTRATION,
+                    "region",
+                )
+            ],
+        )
+        decline = _vh(
+            "Revenue is decreasing",
+            signals=[SignalType.DECREASING_TREND],
+            supporting_evidence=[
+                _evidence(
+                    "growth_rate",
+                    -0.24,
+                    SignalType.DECREASING_TREND,
+                    "revenue",
+                )
+            ],
+        )
+        validation = ValidatedHypothesisReport(
+            validated=[concentration, decline],
+            findings=[],
+        )
+
+        report = generate_report(
+            validation,
+            _profile(),
+            _analyzer_output(),
+            investigation_question="为什么 revenue 下降？",
+        )
+
+        assert report.findings[0].title == "Revenue is decreasing"

@@ -18,6 +18,7 @@ from app.models.enums import (
     HypothesisStatus,
     HypothesisConfidence,
     ColumnType,
+    ColumnSemanticRole,
 )
 
 
@@ -25,15 +26,39 @@ from app.models.enums import (
 # Helpers
 # ═══════════════════════════════════════════════════════════════════════
 
+def _role_for(dtype: ColumnType, is_identifier: bool) -> ColumnSemanticRole:
+    if is_identifier:
+        return ColumnSemanticRole.IDENTIFIER
+    if dtype == ColumnType.NUMERIC:
+        return ColumnSemanticRole.METRIC
+    if dtype == ColumnType.DATETIME:
+        return ColumnSemanticRole.TIME
+    return ColumnSemanticRole.DIMENSION
+
+
+def _column(
+    name: str,
+    dtype: ColumnType,
+    is_identifier: bool,
+    unique_count: int = 50,
+) -> ColumnProfile:
+    return ColumnProfile(
+        name=name,
+        dtype=dtype,
+        semantic_role=_role_for(dtype, is_identifier),
+        is_identifier=is_identifier,
+        null_count=0,
+        null_percentage=0,
+        unique_count=unique_count,
+    )
+
+
 def _profile(columns: list[tuple[str, ColumnType, bool]]) -> DatasetProfile:
     """Build a DatasetProfile from (name, dtype, is_identifier) tuples."""
     return DatasetProfile(
         row_count=100, column_count=len(columns),
         columns=[
-            ColumnProfile(
-                name=name, dtype=dtype, is_identifier=is_id,
-                null_count=0, null_percentage=0, unique_count=50,
-            )
+            _column(name, dtype, is_id)
             for name, dtype, is_id in columns
         ],
     )
@@ -94,53 +119,29 @@ def _analyzer() -> CrossDatasetAnalyzer:
 class TestSharedDimensions:
     def test_detects_shared_column(self):
         primary_cols = {
-            "revenue": ColumnProfile(
-                name="revenue", dtype=ColumnType.NUMERIC, is_identifier=False,
-                null_count=0, null_percentage=0, unique_count=100,
-            ),
-            "region": ColumnProfile(
-                name="region", dtype=ColumnType.CATEGORICAL, is_identifier=False,
-                null_count=0, null_percentage=0, unique_count=5,
-            ),
+            "revenue": _column("revenue", ColumnType.NUMERIC, False, 100),
+            "region": _column("region", ColumnType.CATEGORICAL, False, 5),
         }
         sec_cols = {
-            "region": ColumnProfile(
-                name="region", dtype=ColumnType.CATEGORICAL, is_identifier=False,
-                null_count=0, null_percentage=0, unique_count=5,
-            ),
-            "churn_rate": ColumnProfile(
-                name="churn_rate", dtype=ColumnType.NUMERIC, is_identifier=False,
-                null_count=0, null_percentage=0, unique_count=50,
-            ),
+            "region": _column("region", ColumnType.CATEGORICAL, False, 5),
+            "churn_rate": _column("churn_rate", ColumnType.NUMERIC, False),
         }
         result = _analyzer()._find_shared_dimensions(primary_cols, sec_cols)
         assert result == {"region"}
 
     def test_identifiers_excluded(self):
         primary_cols = {
-            "customer_id": ColumnProfile(
-                name="customer_id", dtype=ColumnType.TEXT, is_identifier=True,
-                null_count=0, null_percentage=0, unique_count=100,
-            ),
+            "customer_id": _column("customer_id", ColumnType.TEXT, True, 100),
         }
         sec_cols = {
-            "customer_id": ColumnProfile(
-                name="customer_id", dtype=ColumnType.TEXT, is_identifier=True,
-                null_count=0, null_percentage=0, unique_count=100,
-            ),
+            "customer_id": _column("customer_id", ColumnType.TEXT, True, 100),
         }
         result = _analyzer()._find_shared_dimensions(primary_cols, sec_cols)
         assert result == set()
 
     def test_no_shared_columns(self):
-        primary_cols = {"a": ColumnProfile(
-            name="a", dtype=ColumnType.NUMERIC, is_identifier=False,
-            null_count=0, null_percentage=0, unique_count=100,
-        )}
-        sec_cols = {"b": ColumnProfile(
-            name="b", dtype=ColumnType.NUMERIC, is_identifier=False,
-            null_count=0, null_percentage=0, unique_count=100,
-        )}
+        primary_cols = {"a": _column("a", ColumnType.NUMERIC, False, 100)}
+        sec_cols = {"b": _column("b", ColumnType.NUMERIC, False, 100)}
         result = _analyzer()._find_shared_dimensions(primary_cols, sec_cols)
         assert result == set()
 

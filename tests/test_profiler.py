@@ -1,14 +1,17 @@
 """Tests for app/services/profiler.py — dataset profiling and column typing."""
 
+import warnings
+
 import pandas as pd
 import pytest
 from app.services.profiler import (
     profile_dataframe,
     infer_column_type,
+    infer_semantic_role,
     detect_identifiers,
     unique_value_ratio,
 )
-from app.models.enums import ColumnType
+from app.models.enums import ColumnSemanticRole, ColumnType
 from app.schemas.profile import DatasetProfile
 
 
@@ -38,6 +41,13 @@ class TestInferColumnType:
         """String dates should be detected as DATETIME by parsing attempt."""
         series = pd.Series(["2024-01-01", "2024-02-01", "2024-03-01"])
         assert infer_column_type(series) == ColumnType.DATETIME
+
+    def test_datetime_string_inference_does_not_warn(self):
+        series = pd.Series(["2024-01-01", "2024-02-01", "2024-03-01"])
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            assert infer_column_type(series) == ColumnType.DATETIME
+        assert caught == []
 
     def test_categorical_low_unique_ratio(self):
         """<50% unique → CATEGORICAL."""
@@ -171,3 +181,43 @@ class TestProfileDataframe:
         d = result.model_dump()
         assert d["row_count"] == 5
         assert len(d["columns"]) == 5
+
+    def test_semantic_roles_are_assigned(self):
+        df = pd.DataFrame(
+            {
+                "customer_id": [f"ID-{i}" for i in range(6)],
+                "customer": [f"Customer {i}" for i in range(6)],
+                "region": ["north", "south", "north", "west", "south", "north"],
+                "date": pd.date_range("2024-01-01", periods=6),
+                "revenue": [100, 120, 130, 140, 150, 160],
+            }
+        )
+
+        result = profile_dataframe(df)
+        roles = {column.name: column.semantic_role for column in result.columns}
+
+        assert roles["customer_id"] == ColumnSemanticRole.IDENTIFIER
+        assert roles["customer"] == ColumnSemanticRole.ENTITY
+        assert roles["region"] == ColumnSemanticRole.DIMENSION
+        assert roles["date"] == ColumnSemanticRole.TIME
+        assert roles["revenue"] == ColumnSemanticRole.METRIC
+
+
+class TestInferSemanticRole:
+    def test_numeric_non_identifier_is_metric(self):
+        role = infer_semantic_role(
+            "revenue",
+            pd.Series([1, 2, 3]),
+            ColumnType.NUMERIC,
+            False,
+        )
+        assert role == ColumnSemanticRole.METRIC
+
+    def test_identifier_overrides_other_roles(self):
+        role = infer_semantic_role(
+            "customer_id",
+            pd.Series(["A", "B", "C"]),
+            ColumnType.TEXT,
+            True,
+        )
+        assert role == ColumnSemanticRole.IDENTIFIER

@@ -11,7 +11,36 @@ Architecture note:
     (deterministic)         (generative)    (forward-looking)
 """
 
-from pydantic import BaseModel
+from datetime import datetime
+
+from pydantic import BaseModel, Field
+
+
+class DrillDownEvidence(BaseModel):
+    """A compact evidence item produced by a runnable follow-up analysis."""
+
+    label: str
+    value: float | int | str | None
+    description: str
+
+
+class DrillDownResult(BaseModel):
+    """Result of executing a runnable follow-up question.
+
+    Drill-down results are appended to the interactive investigation layer.
+    They do not modify the original deterministic InvestigationReport.
+    """
+
+    step_id: str
+    question: str
+    status: str
+    analysis_type: str
+    summary: str
+    related_columns: list[str] = Field(default_factory=list)
+    evidence: list[DrillDownEvidence] = Field(default_factory=list)
+    sample_records: list[dict[str, object | None]] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
+    generated_at: datetime
 
 
 class FollowUpQuestion(BaseModel):
@@ -120,3 +149,7 @@ class InteractiveInvestigationReport(BaseModel):
     unresolved_areas: list[str]
     """Hypothesis titles that remain INCONCLUSIVE and need more data or
     analysis to resolve."""
+
+    drilldown_steps: list[DrillDownResult] = Field(default_factory=list)
+    """Executed follow-up analyses appended after the original report.
+    These are investigation steps, not replacements for the initial findings."""

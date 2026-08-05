@@ -1,9 +1,10 @@
 from pydantic import BaseModel
-from app.models.enums import ColumnType
+from app.models.enums import ColumnSemanticRole, ColumnType
 
 class ColumnProfile(BaseModel):
     name: str
     dtype: ColumnType   
+    semantic_role: ColumnSemanticRole
     is_identifier: bool
 
     null_count: int

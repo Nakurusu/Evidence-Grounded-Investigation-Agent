@@ -3,7 +3,11 @@ from pandas import DataFrame
 from app.models.enums import ColumnType, SignalSeverity, SignalType
 from app.schemas.profile import DatasetProfile
 from app.schemas.signal import Signal, SignalReport
-from app.services.column_selection import select_trend_date_column
+from app.services.column_selection import (
+    select_dimension_columns,
+    select_metric_columns,
+    select_trend_date_column,
+)
 from app.services.statistics import (
     coefficient_of_variation,
     compute_concentration_metrics,
@@ -101,7 +105,7 @@ def detect_cardinality(profile: DatasetProfile) -> list[Signal]:
 def detect_outliers(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
     signals = []
     for column in profile.columns:
-        if column.is_identifier or column.dtype != ColumnType.NUMERIC:
+        if column.name not in select_metric_columns(profile):
             continue
         series = df[column.name].dropna()
         if len(series) < OUTLIER_MIN_SAMPLE_SIZE:
@@ -139,11 +143,7 @@ def detect_outliers(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
 
 def detect_trends(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
     signals = []
-    numeric_columns = [
-        c.name
-        for c in profile.columns
-        if c.dtype == ColumnType.NUMERIC and not c.is_identifier
-    ]
+    numeric_columns = select_metric_columns(profile)
     date_column = select_trend_date_column(profile)
     if date_column is None or not numeric_columns:
         return []
@@ -217,17 +217,8 @@ def detect_trends(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
 
 def detect_concentration(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
     signals = []
-    categorical_columns = [
-        c.name
-        for c in profile.columns
-        if c.dtype in (ColumnType.CATEGORICAL, ColumnType.TEXT)
-        and not c.is_identifier
-    ]
-    numeric_columns = [
-        c.name
-        for c in profile.columns
-        if c.dtype == ColumnType.NUMERIC and not c.is_identifier
-    ]
+    categorical_columns = select_dimension_columns(profile)
+    numeric_columns = select_metric_columns(profile)
     if not categorical_columns or not numeric_columns:
         return []
 
@@ -267,11 +258,7 @@ def detect_concentration(df: DataFrame, profile: DatasetProfile) -> list[Signal]
 
 def detect_distribution(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
     signals = []
-    numeric_columns = [
-        c.name
-        for c in profile.columns
-        if c.dtype == ColumnType.NUMERIC and not c.is_identifier
-    ]
+    numeric_columns = select_metric_columns(profile)
 
     for numeric_column in numeric_columns:
         metrics = compute_distribution_metrics(df[numeric_column])
