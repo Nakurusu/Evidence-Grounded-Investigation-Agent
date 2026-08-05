@@ -10,6 +10,7 @@ import type {
   InvestigationGraph,
   CrossDatasetRelation,
   Evidence,
+  QualitySummary,
 } from "@/api/types";
 import type { HypothesisStatus, HypothesisConfidence } from "@/api/types";
 import {
@@ -31,9 +32,11 @@ import type { Translations } from "@/i18n/translations";
 import {
   useTaskPolling,
   formatElapsed,
+  PIPELINE_STAGES,
   type PipelineStage,
 } from "@/hooks/useTaskPolling";
 import { cn } from "@/lib/utils";
+import { formatMetricValue, metricLabel } from "@/lib/metrics";
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
@@ -46,10 +49,16 @@ const STAGE_LABEL_KEYS: Record<
   parsing: "parsing",
   profiling: "profiling",
   signals: "signals",
+  questions: "questions",
+  hypotheses: "hypotheses",
   evidence: "evidence",
   validation: "validation",
   report: "report",
   narrative: "narrative",
+  interactive: "interactive",
+  secondary_profiling: "secondary_profiling",
+  cross_dataset: "cross_dataset",
+  completed: "completed",
 };
 
 const STATUS_OPTIONS: ("all" | HypothesisStatus)[] = [
@@ -75,8 +84,23 @@ export function InvestigationPage() {
   const activeTab = searchParams.get("tab") ?? "overview";
   const t = useT();
 
-  const { task, isLoading, isError, isRunning, stage, elapsed } =
-    useTaskPolling(taskId);
+  const {
+    task,
+    isLoading,
+    isError,
+    isRunning,
+    stage,
+    elapsed,
+    progressPercent,
+    completedStages,
+    stageDetail,
+    failedStage,
+    stageTitle,
+    stageGoal,
+    stageInput,
+    stageOutput,
+    stageReason,
+  } = useTaskPolling(taskId);
 
   const tabs = [
     { key: "overview", label: t.investigation.tabs.overview },
@@ -88,7 +112,7 @@ export function InvestigationPage() {
   // Conditionally add cross-dataset tab (Phase 9)
   const hasGraph = !!task?.result?.investigation_graph;
   const allTabs = hasGraph
-    ? [...tabs, { key: "cross" as const, label: "Cross-Dataset" }]
+    ? [...tabs, { key: "cross" as const, label: t.investigation.crossDataset.tab }]
     : tabs;
 
   const setTab = (tab: string) => {
@@ -103,6 +127,15 @@ export function InvestigationPage() {
         filename={task?.filename}
         stage={stage}
         elapsed={elapsed}
+        progressPercent={progressPercent}
+        completedStages={completedStages}
+        stageDetail={stageDetail}
+        failedStage={failedStage}
+        stageTitle={stageTitle}
+        stageGoal={stageGoal}
+        stageInput={stageInput}
+        stageOutput={stageOutput}
+        stageReason={stageReason}
         t={t}
       />
     );
@@ -166,6 +199,7 @@ export function InvestigationPage() {
               <OverviewTab
                 es={report.investigation_report.executive_summary}
                 ds={report.investigation_report.dataset_summary}
+                quality={report.investigation_report.quality_summary}
                 t={t}
               />
             )}
@@ -189,7 +223,7 @@ export function InvestigationPage() {
               />
             )}
             {activeTab === "cross" && report.investigation_graph && (
-              <CrossDatasetTab graph={report.investigation_graph} />
+              <CrossDatasetTab graph={report.investigation_graph} t={t} />
             )}
           </>
         )}
@@ -207,25 +241,39 @@ function ProcessingView({
   filename,
   stage,
   elapsed,
+  progressPercent,
+  completedStages,
+  stageDetail,
+  failedStage,
+  stageTitle,
+  stageGoal,
+  stageInput,
+  stageOutput,
+  stageReason,
   t,
 }: {
   isProcessing: boolean;
   filename: string | undefined;
   stage: PipelineStage;
   elapsed: number;
+  progressPercent: number | null;
+  completedStages: string[];
+  stageDetail: string | null;
+  failedStage: string | null;
+  stageTitle: string | null;
+  stageGoal: string | null;
+  stageInput: string | null;
+  stageOutput: string | null;
+  stageReason: string | null;
   t: Translations;
 }) {
-  const stages = [
-    "parsing",
-    "profiling",
-    "signals",
-    "evidence",
-    "validation",
-    "report",
-    "narrative",
-  ] as const;
-
+  const stages = PIPELINE_STAGES;
   const currentIdx = stages.indexOf(stage);
+  const safeCurrentIdx = currentIdx >= 0 ? currentIdx : 0;
+  const safeProgress = progressPercent ?? Math.max(5, (safeCurrentIdx + 1) * 8);
+  const fallbackStageLabel =
+    t.investigation.loading.stages[STAGE_LABEL_KEYS[stage] ?? "parsing"];
+  const displayTitle = stageTitle ?? fallbackStageLabel;
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-4 py-16 sm:px-6 sm:py-24">
@@ -242,11 +290,49 @@ function ProcessingView({
           {filename && <p className="mt-1 text-sm text-muted">{filename}</p>}
         </div>
 
+        <div className="rounded-lg border border-border bg-surface p-4">
+          <p className="text-xs font-medium text-muted">
+            {t.investigation.loading.currentStage}
+          </p>
+          <h3 className="mt-1 text-sm font-semibold text-foreground">
+            {displayTitle}
+          </h3>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            {stageGoal ?? stageDetail ?? t.investigation.loading.fallbackDetail}
+          </p>
+          <div className="mt-3 grid gap-2 text-xs text-muted sm:grid-cols-2">
+            {stageInput && (
+              <p>
+                <span className="font-medium text-muted-foreground">
+                  {t.investigation.loading.stageInput}:
+                </span>{" "}
+                {stageInput}
+              </p>
+            )}
+            {stageOutput && (
+              <p>
+                <span className="font-medium text-muted-foreground">
+                  {t.investigation.loading.stageOutput}:
+                </span>{" "}
+                {stageOutput}
+              </p>
+            )}
+          </div>
+          {stageReason && (
+            <p className="mt-3 text-xs leading-relaxed text-muted">
+              <span className="font-medium text-muted-foreground">
+                {t.investigation.loading.stageReason}:
+              </span>{" "}
+              {stageReason}
+            </p>
+          )}
+        </div>
+
         <div className="space-y-0.5">
           {stages.map((s, i) => {
             const labelKey = STAGE_LABEL_KEYS[s];
             const label = t.investigation.loading.stages[labelKey];
-            const isComplete = i < currentIdx;
+            const isComplete = completedStages.includes(s) || i < currentIdx;
             const isCurrent = i === currentIdx;
             const isPending = i > currentIdx;
 
@@ -284,8 +370,32 @@ function ProcessingView({
           })}
         </div>
 
+        <div className="space-y-2 rounded-lg border border-border bg-surface p-4">
+          <div className="flex items-center justify-between text-xs text-muted">
+            <span>
+              {stageDetail ?? t.investigation.loading.fallbackDetail}
+            </span>
+            <span>{safeProgress}%</span>
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-surface-elevated">
+            <div
+              className="h-full rounded-full bg-accent transition-all"
+              style={{ width: `${Math.min(100, Math.max(0, safeProgress))}%` }}
+            />
+          </div>
+          <div className="flex flex-wrap justify-between gap-2 text-xs text-muted">
+            <span>
+              {t.investigation.loading.completedCount(
+                completedStages.length,
+                stages.length,
+              )}
+            </span>
+            {failedStage && <span>{failedStage}</span>}
+          </div>
+        </div>
+
         <p className="text-center text-xs text-muted">
-          {formatElapsed(elapsed)} elapsed
+          {t.investigation.loading.elapsed(formatElapsed(elapsed))}
         </p>
       </div>
     </div>
@@ -299,10 +409,12 @@ function ProcessingView({
 function OverviewTab({
   es,
   ds,
+  quality,
   t,
 }: {
   es: ExecutiveSummary;
   ds: DatasetSummary;
+  quality: QualitySummary | null;
   t: Translations;
 }) {
   return (
@@ -328,7 +440,7 @@ function OverviewTab({
             tone="danger"
           />
           <StatCard
-            label="Inconclusive"
+            label={t.investigation.overview.inconclusive}
             value={String(es.inconclusive_count)}
             tone="warning"
           />
@@ -341,7 +453,7 @@ function OverviewTab({
         {/* Confidence & risk */}
         <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
           <span className="text-muted-foreground">
-            Overall confidence:{" "}
+            {t.investigation.overview.confidence}:{" "}
             <span className="font-medium text-foreground">
               {es.overall_confidence}
             </span>
@@ -375,11 +487,11 @@ function OverviewTab({
         {/* Column type breakdown */}
         <div className="flex flex-wrap gap-2">
           {[
-            { label: "Numeric", count: ds.numeric_columns.length, color: "bg-info-muted text-info" },
-            { label: "Categorical", count: ds.categorical_columns.length, color: "bg-accent-muted text-accent" },
-            { label: "Datetime", count: ds.datetime_columns.length, color: "bg-success-muted text-success" },
-            { label: "Text", count: ds.text_columns.length, color: "bg-warning-muted text-warning" },
-            { label: "Boolean", count: ds.boolean_columns.length, color: "bg-surface-elevated text-muted-foreground" },
+            { label: t.investigation.overview.columnTypes.numeric, count: ds.numeric_columns.length, color: "bg-info-muted text-info" },
+            { label: t.investigation.overview.columnTypes.categorical, count: ds.categorical_columns.length, color: "bg-accent-muted text-accent" },
+            { label: t.investigation.overview.columnTypes.datetime, count: ds.datetime_columns.length, color: "bg-success-muted text-success" },
+            { label: t.investigation.overview.columnTypes.text, count: ds.text_columns.length, color: "bg-warning-muted text-warning" },
+            { label: t.investigation.overview.columnTypes.boolean, count: ds.boolean_columns.length, color: "bg-surface-elevated text-muted-foreground" },
           ]
             .filter((c) => c.count > 0)
             .map((c) => (
@@ -394,6 +506,32 @@ function OverviewTab({
                 <span className="opacity-70">{c.count}</span>
               </span>
             ))}
+        </div>
+      </section>
+
+      <section>
+        <h2 className="mb-4 text-lg font-semibold text-foreground">
+          {t.investigation.overview.quality}
+        </h2>
+        <div className="rounded-lg border border-border bg-surface p-4">
+          {quality && quality.warnings.length > 0 ? (
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-foreground">
+                {t.investigation.overview.qualityRisk}: {quality.risk_level}
+              </p>
+              <ul className="space-y-2">
+                {quality.warnings.map((warning, i) => (
+                  <li key={i} className="text-sm text-muted-foreground">
+                    {warning}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              {t.investigation.overview.noQualityIssues}
+            </p>
+          )}
         </div>
       </section>
     </div>
@@ -449,7 +587,7 @@ function FindingsTab({ findings, t }: { findings: Finding[]; t: Translations }) 
               )}
             >
               {opt === "all"
-                ? "All"
+                ? t.investigation.findings.all
                 : t.investigation.status[opt as keyof typeof t.investigation.status]}
             </button>
           ))}
@@ -467,7 +605,9 @@ function FindingsTab({ findings, t }: { findings: Finding[]; t: Translations }) 
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
-              {opt === "all" ? "All" : opt}
+              {opt === "all"
+                ? t.investigation.findings.all
+                : t.investigation.confidence[opt]}
             </button>
           ))}
         </div>
@@ -480,18 +620,18 @@ function FindingsTab({ findings, t }: { findings: Finding[]; t: Translations }) 
             className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
           >
             <X className="h-3 w-3" />
-            Clear
+            {t.investigation.findings.clear}
           </button>
         )}
         <span className="ml-auto text-xs text-muted">
-          {filtered.length} of {findings.length}
+          {t.investigation.findings.count(filtered.length, findings.length)}
         </span>
       </div>
 
       {/* Finding cards */}
       {filtered.length === 0 ? (
         <p className="py-8 text-center text-sm text-muted-foreground">
-          No findings match the current filters.
+          {t.investigation.findings.noFilterMatch}
         </p>
       ) : (
         <div className="space-y-4">
@@ -508,7 +648,17 @@ function FindingCard({ finding: f, t }: { finding: Finding; t: Translations }) {
   const [expanded, setExpanded] = useState(false);
   const hasEvidence =
     f.supporting_evidence.length > 0 || f.contradicting_evidence.length > 0;
-  const hasDetail = f.analysis || f.business_impact || hasEvidence;
+  const hasMetrics = Object.keys(f.key_metrics ?? {}).length > 0;
+  const hasTrace = Object.keys(f.trace ?? {}).length > 0;
+  const hasDetail =
+    f.analysis ||
+    f.business_impact ||
+    hasEvidence ||
+    f.affected_columns.length > 0 ||
+    hasMetrics ||
+    hasTrace ||
+    !!f.evidence_strength ||
+    f.uncertainty_notes.length > 0;
 
   return (
     <div className="rounded-lg border border-border bg-surface">
@@ -516,7 +666,7 @@ function FindingCard({ finding: f, t }: { finding: Finding; t: Translations }) {
       <div className="p-4 sm:p-5">
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <StatusBadge status={f.status} t={t} />
-          <ConfidenceBadge confidence={f.confidence} />
+          <ConfidenceBadge confidence={f.confidence} t={t} />
         </div>
         <h3 className="mb-2 text-sm font-semibold text-foreground">
           {f.title}
@@ -545,7 +695,9 @@ function FindingCard({ finding: f, t }: { finding: Finding; t: Translations }) {
                 expanded && "rotate-180",
               )}
             />
-            {expanded ? "Less detail" : "More detail"}
+            {expanded
+              ? t.investigation.findings.lessDetail
+              : t.investigation.findings.moreDetail}
           </button>
         )}
       </div>
@@ -556,7 +708,9 @@ function FindingCard({ finding: f, t }: { finding: Finding; t: Translations }) {
           {/* Analysis */}
           {f.analysis && (
             <div>
-              <p className="mb-1 text-xs font-medium text-muted">Analysis</p>
+              <p className="mb-1 text-xs font-medium text-muted">
+                {t.investigation.findings.analysis}
+              </p>
               <p className="text-sm leading-relaxed text-muted-foreground">
                 {f.analysis}
               </p>
@@ -567,7 +721,7 @@ function FindingCard({ finding: f, t }: { finding: Finding; t: Translations }) {
           {f.business_impact && (
             <div>
               <p className="mb-1 text-xs font-medium text-muted">
-                Business Impact
+                {t.investigation.findings.businessImpact}
               </p>
               <p className="text-sm leading-relaxed text-muted-foreground">
                 {f.business_impact}
@@ -575,19 +729,68 @@ function FindingCard({ finding: f, t }: { finding: Finding; t: Translations }) {
             </div>
           )}
 
+          {f.evidence_strength && (
+            <div>
+              <p className="mb-1 text-xs font-medium text-muted">
+                {t.investigation.findings.evidenceStrength}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {f.evidence_strength}
+              </p>
+            </div>
+          )}
+
+          {f.uncertainty_notes.length > 0 && (
+            <div>
+              <p className="mb-1 text-xs font-medium text-muted">
+                {t.investigation.findings.uncertaintyNotes}
+              </p>
+              <ul className="space-y-1">
+                {f.uncertainty_notes.map((note, i) => (
+                  <li key={i} className="text-sm text-muted-foreground">
+                    {note}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {f.affected_columns.length > 0 && (
+            <TagList
+              label={t.investigation.findings.affectedColumns}
+              values={f.affected_columns}
+            />
+          )}
+
+          {hasMetrics && (
+            <MetricGrid
+              label={t.investigation.findings.keyMetrics}
+              metrics={f.key_metrics}
+            />
+          )}
+
+          {hasTrace && (
+            <TraceBlock
+              label={t.investigation.findings.evidenceTrace}
+              trace={f.trace}
+            />
+          )}
+
           {/* Evidence */}
           {f.supporting_evidence.length > 0 && (
             <EvidenceBlock
-              label="Supporting Evidence"
+              label={t.investigation.findings.supportingEvidence}
               tone="success"
               evidence={f.supporting_evidence}
+              t={t}
             />
           )}
           {f.contradicting_evidence.length > 0 && (
             <EvidenceBlock
-              label="Contradicting Evidence"
+              label={t.investigation.findings.contradictingEvidence}
               tone="danger"
               evidence={f.contradicting_evidence}
+              t={t}
             />
           )}
         </div>
@@ -596,14 +799,85 @@ function FindingCard({ finding: f, t }: { finding: Finding; t: Translations }) {
   );
 }
 
+function TagList({ label, values }: { label: string; values: string[] }) {
+  return (
+    <div>
+      <p className="mb-2 text-xs font-medium text-muted">{label}</p>
+      <div className="flex flex-wrap gap-2">
+        {values.map((value) => (
+          <span
+            key={value}
+            className="rounded-full bg-surface-elevated px-2.5 py-0.5 text-xs text-muted-foreground"
+          >
+            {value}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MetricGrid({
+  label,
+  metrics,
+}: {
+  label: string;
+  metrics: Record<string, string | number>;
+}) {
+  return (
+    <div>
+      <p className="mb-2 text-xs font-medium text-muted">{label}</p>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {Object.entries(metrics).map(([key, value]) => (
+          <div
+            key={key}
+            className="rounded-md border border-border bg-surface-elevated px-3 py-2"
+          >
+            <p className="text-xs text-muted">{metricLabel(key)}</p>
+            <p className="mt-0.5 font-mono text-sm text-foreground">
+              {formatMetricValue(key, value)}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TraceBlock({
+  label,
+  trace,
+}: {
+  label: string;
+  trace: Record<string, string | string[]>;
+}) {
+  return (
+    <div>
+      <p className="mb-2 text-xs font-medium text-muted">{label}</p>
+      <div className="space-y-2 rounded-md border border-border bg-surface-elevated p-3">
+        {Object.entries(trace).map(([key, value]) => (
+          <div key={key} className="text-xs">
+            <span className="font-medium text-muted-foreground">{key}: </span>
+            <span className="text-muted">
+              {Array.isArray(value) ? value.join("、") : value}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function EvidenceBlock({
   label,
   tone,
   evidence,
+  t,
 }: {
   label: string;
   tone: "success" | "danger";
   evidence: Evidence[];
+  t: Translations;
 }) {
   const color =
     tone === "success"
@@ -628,7 +902,29 @@ function EvidenceBlock({
             )}
             {e.metric && e.value !== null && (
               <p className="mt-1 font-mono text-xs text-muted">
-                {e.metric}: {String(e.value)}
+                {metricLabel(e.metric)}: {formatMetricValue(e.metric, e.value)}
+              </p>
+            )}
+            <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
+              {e.method && (
+                <span>
+                  {t.investigation.findings.method}: {e.method}
+                </span>
+              )}
+              {e.threshold !== null && e.threshold !== undefined && (
+                <span>
+                  {t.investigation.findings.threshold}: {String(e.threshold)}
+                </span>
+              )}
+              {e.sample_size !== null && e.sample_size !== undefined && (
+                <span>
+                  {t.investigation.findings.sampleSize}: {e.sample_size}
+                </span>
+              )}
+            </div>
+            {e.limitation && (
+              <p className="mt-1 text-xs text-muted">
+                {t.investigation.findings.limitation}: {e.limitation}
               </p>
             )}
           </div>
@@ -663,6 +959,34 @@ function NarrativeTab({
 
   return (
     <div className="mx-auto max-w-2xl space-y-10">
+      {narrative.plain_language_summary && (
+        <section className="rounded-lg border border-accent/20 bg-accent-muted p-4">
+          <h2 className="mb-3 text-lg font-semibold text-foreground">
+            {t.investigation.narrative.plainLanguageSummary}
+          </h2>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            {narrative.plain_language_summary}
+          </p>
+        </section>
+      )}
+
+      <NarrativeListSection
+        title={t.investigation.narrative.whatHappened}
+        items={narrative.what_happened}
+      />
+      <NarrativeListSection
+        title={t.investigation.narrative.whyItMatters}
+        items={narrative.why_it_matters}
+      />
+      <NarrativeListSection
+        title={t.investigation.narrative.whatToCheckNext}
+        items={narrative.what_to_check_next}
+      />
+      <NarrativeListSection
+        title={t.investigation.narrative.confidenceNotes}
+        items={narrative.confidence_notes}
+      />
+
       {/* Executive Summary — lead paragraph */}
       <section>
         <h2 className="mb-3 text-lg font-semibold text-foreground">
@@ -696,7 +1020,7 @@ function NarrativeTab({
       {narrative.supporting_evidence_summary && (
         <section>
           <h2 className="mb-3 text-lg font-semibold text-foreground">
-            Evidence Summary
+            {t.investigation.narrative.evidenceSummary}
           </h2>
           <p className="text-sm leading-relaxed text-muted-foreground">
             {narrative.supporting_evidence_summary}
@@ -752,6 +1076,33 @@ function NarrativeTab({
         </div>
       )}
     </div>
+  );
+}
+
+function NarrativeListSection({
+  title,
+  items,
+}: {
+  title: string;
+  items: string[];
+}) {
+  if (items.length === 0) return null;
+  return (
+    <section>
+      <h2 className="mb-4 text-lg font-semibold text-foreground">{title}</h2>
+      <div className="space-y-3">
+        {items.map((item, i) => (
+          <div key={i} className="flex items-start gap-3">
+            <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent-muted text-xs font-medium text-accent">
+              {i + 1}
+            </span>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              {item}
+            </p>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -946,21 +1297,23 @@ function InteractiveTab({
 
 function CrossDatasetTab({
   graph,
+  t,
 }: {
   graph: InvestigationGraph;
+  t: Translations;
 }) {
   return (
     <div className="mx-auto max-w-3xl space-y-10">
       {/* Header */}
       <section>
         <h2 className="mb-2 text-lg font-semibold text-foreground">
-          Cross-Dataset Analysis
+          {t.investigation.crossDataset.title}
         </h2>
         <p className="text-sm text-muted-foreground">
-          Primary: <span className="font-medium text-foreground">{graph.primary_dataset}</span>
+          {t.investigation.crossDataset.primary}: <span className="font-medium text-foreground">{graph.primary_dataset}</span>
           {graph.secondary_datasets.length > 0 && (
             <>
-              {" "}· Secondary:{" "}
+              {" "}· {t.investigation.crossDataset.secondary}:{" "}
               <span className="font-medium text-foreground">
                 {graph.secondary_datasets.join(", ")}
               </span>
@@ -973,7 +1326,7 @@ function CrossDatasetTab({
       {graph.shared_dimensions.length > 0 && (
         <section>
           <h2 className="mb-3 text-lg font-semibold text-foreground">
-            Shared Dimensions
+            {t.investigation.crossDataset.sharedDimensions}
           </h2>
           <div className="flex flex-wrap gap-2">
             {graph.shared_dimensions.map((dim) => (
@@ -993,11 +1346,11 @@ function CrossDatasetTab({
       {graph.relations.length > 0 && (
         <section>
           <h2 className="mb-4 text-lg font-semibold text-foreground">
-            Relations ({graph.relations.length})
+            {t.investigation.crossDataset.relations(graph.relations.length)}
           </h2>
           <div className="space-y-4">
             {graph.relations.map((rel, i) => (
-              <RelationCard key={i} rel={rel} />
+              <RelationCard key={i} rel={rel} t={t} />
             ))}
           </div>
         </section>
@@ -1007,7 +1360,7 @@ function CrossDatasetTab({
       {graph.cross_hypotheses.length > 0 && (
         <section>
           <h2 className="mb-4 text-lg font-semibold text-foreground">
-            Cross-Dataset Hypotheses
+            {t.investigation.crossDataset.hypotheses}
           </h2>
           <div className="space-y-2">
             {graph.cross_hypotheses.map((h, i) => (
@@ -1026,7 +1379,13 @@ function CrossDatasetTab({
   );
 }
 
-function RelationCard({ rel }: { rel: CrossDatasetRelation }) {
+function RelationCard({
+  rel,
+  t,
+}: {
+  rel: CrossDatasetRelation;
+  t: Translations;
+}) {
   const typeIcons: Record<string, React.ReactNode> = {
     correlated_trend: <TrendingUp className="h-4 w-4 text-success" />,
     opposite_trend: <TrendingDown className="h-4 w-4 text-danger" />,
@@ -1041,16 +1400,19 @@ function RelationCard({ rel }: { rel: CrossDatasetRelation }) {
         <span className="text-xs font-medium text-muted uppercase">
           {rel.type}
         </span>
-        <ConfidenceBadge confidence={rel.confidence as HypothesisConfidence} />
+        <ConfidenceBadge
+          confidence={rel.confidence as HypothesisConfidence}
+          t={t}
+        />
       </div>
       <p className="text-sm text-foreground">{rel.description}</p>
       <div className="mt-2 space-y-1">
         <p className="text-xs text-muted">
-          Primary:{" "}
+          {t.investigation.crossDataset.primary}:{" "}
           <span className="text-muted-foreground">{rel.primary_context}</span>
         </p>
         <p className="text-xs text-muted">
-          Secondary:{" "}
+          {t.investigation.crossDataset.secondary}:{" "}
           <span className="text-muted-foreground">
             {rel.secondary_context}
           </span>
@@ -1130,8 +1492,10 @@ function StatusBadge({ status, t }: { status: string; t: Translations }) {
 
 function ConfidenceBadge({
   confidence,
+  t,
 }: {
   confidence: HypothesisConfidence | string;
+  t: Translations;
 }) {
   const colors: Record<string, string> = {
     high: "bg-success-muted text-success",
@@ -1140,6 +1504,10 @@ function ConfidenceBadge({
   };
   const color =
     colors[confidence.toLowerCase()] ?? "bg-surface-elevated text-muted";
+  const label =
+    t.investigation.confidence[
+      confidence.toLowerCase() as keyof typeof t.investigation.confidence
+    ] ?? confidence;
 
   return (
     <span
@@ -1148,7 +1516,7 @@ function ConfidenceBadge({
         color,
       )}
     >
-      {confidence}
+      {label}
     </span>
   );
 }

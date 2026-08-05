@@ -7,19 +7,44 @@ export type PipelineStage =
   | "parsing"
   | "profiling"
   | "signals"
+  | "questions"
+  | "hypotheses"
   | "evidence"
   | "validation"
   | "report"
-  | "narrative";
+  | "narrative"
+  | "interactive"
+  | "secondary_profiling"
+  | "cross_dataset"
+  | "completed";
 
-const STAGES: { key: PipelineStage; labelKey: string; afterMs: number }[] = [
-  { key: "parsing", labelKey: "loading.stages.parsing", afterMs: 0 },
-  { key: "profiling", labelKey: "loading.stages.profiling", afterMs: 800 },
-  { key: "signals", labelKey: "loading.stages.signals", afterMs: 2000 },
-  { key: "evidence", labelKey: "loading.stages.evidence", afterMs: 3500 },
-  { key: "validation", labelKey: "loading.stages.validation", afterMs: 5000 },
-  { key: "report", labelKey: "loading.stages.report", afterMs: 6500 },
-  { key: "narrative", labelKey: "loading.stages.narrative", afterMs: 8000 },
+export const PIPELINE_STAGES: PipelineStage[] = [
+  "parsing",
+  "profiling",
+  "signals",
+  "questions",
+  "hypotheses",
+  "evidence",
+  "validation",
+  "report",
+  "narrative",
+  "interactive",
+  "secondary_profiling",
+  "cross_dataset",
+  "completed",
+];
+
+const STAGES: { key: PipelineStage; afterMs: number }[] = [
+  { key: "parsing", afterMs: 0 },
+  { key: "profiling", afterMs: 800 },
+  { key: "signals", afterMs: 2000 },
+  { key: "questions", afterMs: 3000 },
+  { key: "hypotheses", afterMs: 4000 },
+  { key: "evidence", afterMs: 5000 },
+  { key: "validation", afterMs: 6500 },
+  { key: "report", afterMs: 8000 },
+  { key: "narrative", afterMs: 9500 },
+  { key: "interactive", afterMs: 11000 },
 ];
 
 export function useTaskPolling(taskId: string | undefined) {
@@ -53,14 +78,16 @@ export function useTaskPolling(taskId: string | undefined) {
     return () => clearInterval(id);
   }, [isRunning, startedAt]);
 
-  // Determine the likely current pipeline stage from elapsed time
-  let stage: PipelineStage = "parsing";
+  // Determine fallback stage from elapsed time for old tasks without progress.
+  let estimatedStage: PipelineStage = "parsing";
   for (let i = STAGES.length - 1; i >= 0; i--) {
     if (elapsed >= STAGES[i].afterMs) {
-      stage = STAGES[i].key;
+      estimatedStage = STAGES[i].key;
       break;
     }
   }
+  const backendStage = task?.progress?.current_stage as PipelineStage | undefined;
+  const stage = backendStage ?? estimatedStage;
 
   return {
     task,
@@ -70,6 +97,15 @@ export function useTaskPolling(taskId: string | undefined) {
     stage,
     elapsed,
     stages: STAGES,
+    progressPercent: task?.progress?.percent ?? null,
+    completedStages: task?.progress?.completed_stages ?? [],
+    stageDetail: task?.progress?.stage_detail ?? null,
+    failedStage: task?.progress?.failed_stage ?? null,
+    stageTitle: task?.progress?.stage_title ?? null,
+    stageGoal: task?.progress?.stage_goal ?? null,
+    stageInput: task?.progress?.stage_input ?? null,
+    stageOutput: task?.progress?.stage_output ?? null,
+    stageReason: task?.progress?.stage_reason ?? null,
     error: query.error,
   };
 }

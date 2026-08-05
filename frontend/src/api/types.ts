@@ -28,6 +28,19 @@ export type ColumnType = "numeric" | "categorical" | "datetime" | "boolean" | "t
 
 // -- Task ------------------------------------------------------------------
 
+export interface TaskProgress {
+  current_stage: string | null;
+  completed_stages: string[];
+  percent: number | null;
+  stage_detail: string | null;
+  failed_stage: string | null;
+  stage_title: string | null;
+  stage_goal: string | null;
+  stage_input: string | null;
+  stage_output: string | null;
+  stage_reason: string | null;
+}
+
 export interface TaskResponse {
   id: string;
   status: TaskStatus;
@@ -36,6 +49,8 @@ export interface TaskResponse {
   finished_at: string | null;
   result: AIInvestigationReport | null;
   error_message: string | null;
+  current_stage: string | null;
+  progress: TaskProgress | null;
 }
 
 // -- Investigation Report --------------------------------------------------
@@ -67,6 +82,12 @@ export interface Evidence {
   value: string | number | null;
   supporting_signal: SignalType | null;
   related_column: string | null;
+  method: string | null;
+  threshold: string | number | null;
+  sample_size: number | null;
+  direction: string | null;
+  strength: string | null;
+  limitation: string | null;
 }
 
 export interface Finding {
@@ -79,6 +100,18 @@ export interface Finding {
   analysis: string;
   business_impact: string;
   recommendation: string;
+  primary_signal_type: string | null;
+  affected_columns: string[];
+  key_metrics: Record<string, string | number>;
+  trace: Record<string, string | string[]>;
+  evidence_strength: string | null;
+  uncertainty_notes: string[];
+}
+
+export interface QualitySummary {
+  issue_count: number;
+  risk_level: string;
+  warnings: string[];
 }
 
 export interface InvestigationReport {
@@ -86,6 +119,7 @@ export interface InvestigationReport {
   dataset_summary: DatasetSummary;
   findings: Finding[];
   next_steps: string[];
+  quality_summary: QualitySummary | null;
 }
 
 // -- Narrative -------------------------------------------------------------
@@ -96,6 +130,11 @@ export interface Narrative {
   supporting_evidence_summary: string;
   business_impact_summary: string;
   recommendations: string[];
+  plain_language_summary: string | null;
+  what_happened: string[];
+  why_it_matters: string[];
+  what_to_check_next: string[];
+  confidence_notes: string[];
 }
 
 export interface ModelMetadata {
