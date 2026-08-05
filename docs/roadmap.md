@@ -112,6 +112,24 @@ Future: Anthropic SDK, OpenAI, etc. behind same Protocol.
 
 ---
 
+## MVP Completion Track
+
+Phase 1–8 have produced the core investigation pipeline, but the product should not move directly into broad platform expansion before the MVP is strong enough for real user investigation.
+
+The next development focus is documented in `docs/mvp-plan.md`.
+
+MVP completion focuses on:
+
+- question-driven investigation
+- semantic field roles
+- cause candidate ranking
+- limited runnable follow-up questions
+- a clearer frontend flow around questions, evidence, confidence, and next investigation
+
+**Status**: In progress
+
+---
+
 ## Phase 9 - Multi-Dataset Analysis
 
 - Cross-dataset reasoning
@@ -148,6 +166,7 @@ Future: Anthropic SDK, OpenAI, etc. behind same Protocol.
 | Phase 6 – Evidence-Based Investigation | ✅ |
 | Phase 7 – LLM Integration | ✅ |
 | Phase 8 – Interactive Investigation | ✅ |
+| MVP Completion Track | In progress |
 | Phase 9 – Multi-Dataset Analysis | ⏳ |
 | Phase 10 – Deployment & Operations | ⏳ |
 
