@@ -1,3 +1,5 @@
+from dataclasses import dataclass, field
+
 from pandas import DataFrame
 import pandas as pd
 from app.schemas.profile import DatasetProfile, ColumnProfile
@@ -16,7 +18,23 @@ IDENTIFIER_KEYWORDS = {
 }
 
 
-def profile_dataframe(df: DataFrame) -> DatasetProfile:
+@dataclass(frozen=True)
+class ProfilerRules:
+    categorical_unique_ratio: float = 0.5
+    identifier_unique_ratio: float = 0.95
+    identifier_keywords: set[str] = field(
+        default_factory=lambda: set(IDENTIFIER_KEYWORDS)
+    )
+
+
+DEFAULT_PROFILER_RULES = ProfilerRules()
+
+
+def profile_dataframe(
+    df: DataFrame,
+    rules: ProfilerRules | None = None,
+) -> DatasetProfile:
+    active_rules = rules or DEFAULT_PROFILER_RULES
     row_count = len(df)
     column_count = len(df.columns)
     column_profiles = []
@@ -31,8 +49,10 @@ def profile_dataframe(df: DataFrame) -> DatasetProfile:
         column_profiles.append(
             ColumnProfile(
                 name=column,
-                dtype=infer_column_type(df[column]),
-                is_identifier=detect_identifiers(column, df[column]),
+                dtype=infer_column_type(df[column], active_rules),
+                is_identifier=detect_identifiers(
+                    column, df[column], active_rules
+                ),
                 null_count=null_count,
                 null_percentage=null_percentage,
                 unique_count=unique_count
@@ -44,7 +64,11 @@ def profile_dataframe(df: DataFrame) -> DatasetProfile:
         columns=column_profiles
     )
 
-def infer_column_type(series) -> ColumnType:
+def infer_column_type(
+    series,
+    rules: ProfilerRules | None = None,
+) -> ColumnType:
+    active_rules = rules or DEFAULT_PROFILER_RULES
     if pd.api.types.is_bool_dtype(series):
         return ColumnType.BOOLEAN
     if pd.api.types.is_numeric_dtype(series):
@@ -61,7 +85,7 @@ def infer_column_type(series) -> ColumnType:
             pass
             
     unique_ratio = unique_value_ratio(series)
-    if unique_ratio < 0.5:
+    if unique_ratio < active_rules.categorical_unique_ratio:
         return ColumnType.CATEGORICAL
     else:
         return ColumnType.TEXT
@@ -70,6 +94,14 @@ def unique_value_ratio(series) -> float:
     non_null = series.dropna()
     return non_null.nunique() / len(non_null) if len(non_null) > 0 else 0
 
-def detect_identifiers(column_name, series) -> bool:
+def detect_identifiers(
+    column_name,
+    series,
+    rules: ProfilerRules | None = None,
+) -> bool:
+    active_rules = rules or DEFAULT_PROFILER_RULES
     unique_ratio = unique_value_ratio(series)
-    return unique_ratio > 0.95 and any(keyword in column_name.lower() for keyword in IDENTIFIER_KEYWORDS)
+    return unique_ratio > active_rules.identifier_unique_ratio and any(
+        keyword in column_name.lower()
+        for keyword in active_rules.identifier_keywords
+    )

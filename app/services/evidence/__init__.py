@@ -13,6 +13,7 @@ from app.schemas.signal import SignalReport
 from app.schemas.hypothesis import Hypothesis, HypothesisReport
 from app.models.enums import SignalType
 from app.schemas.evidence import Evidence
+from app.services.evidence.display import add_display_metadata
 
 EVIDENCE_BUILDERS = {
     SignalType.HIGH_CONCENTRATION: build_concentration_evidence,
@@ -48,7 +49,10 @@ def generate_evidence_for_hypothesis(
         builder = EVIDENCE_BUILDERS.get(signal.type)
         if builder is None:
             continue
-        evidence.extend(builder(df, profile, signal))
+        evidence.extend(
+            add_display_metadata(item)
+            for item in builder(df, profile, signal)
+        )
     return evidence
 
 

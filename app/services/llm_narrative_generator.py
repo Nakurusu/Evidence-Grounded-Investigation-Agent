@@ -76,11 +76,18 @@ class LLMNarrativeGenerator:
         model: str = "gpt-4o",
         max_tokens: int = 4096,
         max_retries: int = 1,
+        timeout_seconds: float = 30.0,
+        temperature: float = 0.3,
     ):
-        self._client = OpenAI(api_key=api_key, base_url=base_url)
+        self._client = OpenAI(
+            api_key=api_key,
+            base_url=base_url,
+            timeout=timeout_seconds,
+        )
         self._model = model
         self._max_tokens = max_tokens
         self._max_retries = max_retries
+        self._temperature = temperature
 
     # ------------------------------------------------------------------
     # Public API (NarrativeGenerator Protocol)
@@ -162,7 +169,7 @@ class LLMNarrativeGenerator:
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_message},
             ],
-            temperature=0.3,
+            temperature=self._temperature,
             max_tokens=self._max_tokens,
             response_format={"type": "json_object"},
         )

@@ -902,7 +902,8 @@ function EvidenceBlock({
             )}
             {e.metric && e.value !== null && (
               <p className="mt-1 font-mono text-xs text-muted">
-                {metricLabel(e.metric)}: {formatMetricValue(e.metric, e.value)}
+                {metricLabel(e.metric, e.display_label)}:{" "}
+                {formatMetricValue(e.metric, e.value, e.display_format)}
               </p>
             )}
             <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">

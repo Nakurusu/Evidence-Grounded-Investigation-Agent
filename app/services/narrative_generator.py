@@ -250,6 +250,10 @@ def get_narrative_generator() -> NarrativeGenerator:
             api_key=api_key,
             base_url=getattr(settings, "LLM_BASE_URL", "https://api.openai.com/v1"),
             model=getattr(settings, "LLM_MODEL", "gpt-4o"),
+            max_tokens=getattr(settings, "LLM_MAX_TOKENS", 4096),
+            max_retries=getattr(settings, "LLM_MAX_RETRIES", 1),
+            timeout_seconds=getattr(settings, "LLM_TIMEOUT_SECONDS", 30.0),
+            temperature=getattr(settings, "LLM_TEMPERATURE", 0.3),
         )
 
     raise ValueError(

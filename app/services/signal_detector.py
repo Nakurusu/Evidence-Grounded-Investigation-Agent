@@ -3,6 +3,7 @@ from pandas import DataFrame
 from app.models.enums import ColumnType, SignalSeverity, SignalType
 from app.schemas.profile import DatasetProfile
 from app.schemas.signal import Signal, SignalReport
+from app.services.column_selection import select_trend_date_column
 from app.services.statistics import (
     coefficient_of_variation,
     compute_concentration_metrics,
@@ -14,6 +15,8 @@ from app.services.thresholds import (
     HIGH_CARDINALITY_RATIO,
     LOW_VARIANCE_CV,
     MISSING_RATE_WARNING,
+    OUTLIER_IQR_MULTIPLIER,
+    OUTLIER_MIN_SAMPLE_SIZE,
     SKEWNESS_WARNING_ABS,
     TREND_MIN_ABS_GROWTH_RATE,
     TREND_MIN_R_SQUARED,
@@ -101,14 +104,14 @@ def detect_outliers(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
         if column.is_identifier or column.dtype != ColumnType.NUMERIC:
             continue
         series = df[column.name].dropna()
-        if len(series) < 4:
+        if len(series) < OUTLIER_MIN_SAMPLE_SIZE:
             continue
 
         q1 = series.quantile(0.25)
         q3 = series.quantile(0.75)
         iqr = q3 - q1
-        lower = q1 - 1.5 * iqr
-        upper = q3 + 1.5 * iqr
+        lower = q1 - OUTLIER_IQR_MULTIPLIER * iqr
+        upper = q3 + OUTLIER_IQR_MULTIPLIER * iqr
 
         outlier_count = int(((series < lower) | (series > upper)).sum())
         if outlier_count > 0:
@@ -136,20 +139,14 @@ def detect_outliers(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
 
 def detect_trends(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
     signals = []
-    datetime_columns = [
-        c.name
-        for c in profile.columns
-        if c.dtype == ColumnType.DATETIME and not c.is_identifier
-    ]
     numeric_columns = [
         c.name
         for c in profile.columns
         if c.dtype == ColumnType.NUMERIC and not c.is_identifier
     ]
-    if not datetime_columns or not numeric_columns:
+    date_column = select_trend_date_column(profile)
+    if date_column is None or not numeric_columns:
         return []
-
-    date_column = datetime_columns[0]
     for numeric_column in numeric_columns:
         metrics = compute_trend_metrics(df, date_column, numeric_column)
         if metrics is None or metrics.points < TREND_MIN_POINTS:
@@ -186,6 +183,7 @@ def detect_trends(df: DataFrame, profile: DatasetProfile) -> list[Signal]:
             "absolute_change": round(metrics.absolute_change, 4),
             "trend_slope": round(metrics.slope, 4),
             "trend_points": metrics.points,
+            "date_column": date_column,
         }
         if metrics.r_squared is not None:
             statistics["r_squared"] = round(metrics.r_squared, 4)

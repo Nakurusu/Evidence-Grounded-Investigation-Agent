@@ -26,6 +26,18 @@ class Settings(BaseSettings):
     """Model name passed to the API.  Any OpenAI-compatible model works:
     gpt-4o, gpt-4o-mini, claude-sonnet-5 (via proxy), etc."""
 
+    LLM_TIMEOUT_SECONDS: float = 30.0
+    """Maximum time to wait for one LLM API request before falling back."""
+
+    LLM_TEMPERATURE: float = 0.3
+    """Sampling temperature for narrative generation."""
+
+    LLM_MAX_TOKENS: int = 4096
+    """Maximum narrative response size requested from the provider."""
+
+    LLM_MAX_RETRIES: int = 1
+    """Retry count for invalid JSON responses."""
+
     model_config = ConfigDict(
         env_file=".env"
     )

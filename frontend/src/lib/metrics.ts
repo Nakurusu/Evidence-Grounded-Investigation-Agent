@@ -38,7 +38,11 @@ const PERCENT_POINT_METRICS = new Set([
   "null_percentage",
 ]);
 
-export function metricLabel(metric: string | null): string {
+export function metricLabel(
+  metric: string | null,
+  displayLabel?: string | null,
+): string {
+  if (displayLabel) return displayLabel;
   if (!metric) return "指标";
   return METRIC_LABELS[metric] ?? metric;
 }
@@ -46,14 +50,21 @@ export function metricLabel(metric: string | null): string {
 export function formatMetricValue(
   metric: string | null,
   value: string | number | null,
+  displayFormat?: string | null,
 ): string {
   if (value === null || value === undefined) return "N/A";
   if (typeof value === "string") return value;
-  if (PERCENT_METRICS.has(metric ?? "")) {
+  if (displayFormat === "percent" || PERCENT_METRICS.has(metric ?? "")) {
     return `${(value * 100).toFixed(1)}%`;
   }
-  if (PERCENT_POINT_METRICS.has(metric ?? "")) {
+  if (
+    displayFormat === "percent_point" ||
+    PERCENT_POINT_METRICS.has(metric ?? "")
+  ) {
     return `${value.toFixed(1)}%`;
+  }
+  if (displayFormat === "integer") {
+    return String(Math.round(value));
   }
   if (Number.isInteger(value)) return String(value);
   return value.toLocaleString(undefined, {

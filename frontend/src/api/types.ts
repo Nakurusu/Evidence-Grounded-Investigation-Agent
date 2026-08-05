@@ -88,6 +88,8 @@ export interface Evidence {
   direction: string | null;
   strength: string | null;
   limitation: string | null;
+  display_label: string | null;
+  display_format: string | null;
 }
 
 export interface Finding {

@@ -16,6 +16,8 @@ class Evidence(BaseModel):
     direction: str | None = None
     strength: str | None = None
     limitation: str | None = None
+    display_label: str | None = None
+    display_format: str | None = None
 
 
 class EvidenceReport(BaseModel):
