@@ -178,17 +178,10 @@ class TestFullPipeline:
         roundtripped = json.loads(json_str)
         assert roundtripped["model_metadata"]["provider"] == "mock"
 
-    def test_empty_dataset_does_not_crash(self, empty_df, tmp_path):
-        """An empty DataFrame should not cause pipeline crashes."""
+    def test_empty_dataset_is_rejected_by_validator(self, empty_df, tmp_path):
+        """An empty DataFrame should be rejected before the pipeline runs."""
         path = _make_csv(str(tmp_path), empty_df)
         df = normalize_dataframe(parse_file(path))
-        try:
-            validate_dataframe(df)
-        except Exception:
-            pytest.skip("Validator rejects empty DataFrame (expected)")
 
-        profile = profile_dataframe(df)
-        assert profile.row_count == 0
-        signals = detect_signals(df, profile)
-        # No signals expected for empty data
-        assert len(signals.signals) == 0
+        with pytest.raises(ValueError, match="Dataset is empty"):
+            validate_dataframe(df)

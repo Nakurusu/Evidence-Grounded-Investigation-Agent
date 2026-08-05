@@ -1,40 +1,40 @@
 # Investigative Data Analyst
 
-An AI-powered investigation engine for structured datasets. It turns CSV or Excel data into evidence-backed findings, ranked cause candidates, natural-language summaries, and runnable follow-up analyses.
+Investigative Data Analyst 是一个面向结构化数据的 AI 调查分析引擎。它可以把 CSV 或 Excel 数据逐步转化为数据画像、异常信号、调查问题、假设、证据、候选原因、自然语言总结和可继续运行的后续分析。
 
-The project is built around investigation rather than reporting. It helps users narrow a business problem from raw data to signals, hypotheses, evidence, confidence notes, and the next questions worth checking.
+项目重点是“调查”而不是单纯“报表”。系统不会只给出描述性统计或图表，而是帮助用户从原始数据出发，逐步缩小业务问题的可能解释范围，并说明每个结论背后的证据、置信度和限制。
 
-## Current status
+## 当前状态
 
-The MVP track is complete. The system now supports both exploration-driven analysis and question-driven investigation.
+MVP 主线已经完成。系统同时支持探索驱动分析和问题驱动调查。
 
-| Area | Status |
+| 模块 | 状态 |
 |---|---|
-| Core pipeline, profiling, signal detection, hypotheses, evidence, validation | Complete |
-| Question-aware investigation | Complete |
-| Semantic field roles | Complete |
-| Cause candidate ranking | Complete |
-| Runnable follow-up analysis | Complete |
-| LLM narrative layer with mock fallback | Complete |
-| Multi-dataset investigation graph | Planned |
+| 核心 pipeline、数据画像、信号检测、假设、证据、验证 | 已完成 |
+| 问题驱动调查 | 已完成 |
+| 字段语义角色识别 | 已完成 |
+| 候选原因排序 | 已完成 |
+| 可运行 follow-up 分析 | 已完成 |
+| LLM 叙事层与 mock fallback | 已完成 |
+| 多数据集调查图谱 | 计划中 |
 
-## What it does
+## 系统能做什么
 
-Upload a structured dataset and, optionally, provide a business question such as “为什么收入下降？” or “哪些地区表现异常？”. The system returns a structured `AIInvestigationReport` containing:
+用户上传结构化数据集后，可以选择输入一个业务问题，例如“为什么收入下降？”或“哪些地区表现异常？”。系统会返回一个结构化的 `AIInvestigationReport`，其中包含：
 
-| Output | Purpose |
+| 输出 | 作用 |
 |---|---|
-| Dataset profile | Column types, semantic roles, missingness, identifiers |
-| Signal report | Outliers, trends, skew, high concentration, high cardinality, low variance |
-| Investigation questions | Questions generated from detected signals |
-| Hypotheses | Simple and composite explanations for observed patterns |
-| Evidence | Statistical evidence that supports, refutes, or weakens hypotheses |
-| Findings | Business-readable findings with evidence strength and uncertainty notes |
-| Cause candidates | 3 to 5 likely explanations ranked by deterministic evidence |
-| AI narrative | Plain-language summary generated from the deterministic report |
-| Interactive investigation | Follow-up questions, data gaps, investigation paths, and runnable drill-down results |
+| 数据画像 | 字段类型、语义角色、缺失率、标识符识别 |
+| 信号报告 | 异常值、趋势、偏态、集中度、高基数、低方差等信号 |
+| 调查问题 | 基于检测信号生成的后续调查问题 |
+| 假设 | 对观察到的模式生成简单假设和组合假设 |
+| 证据 | 支持、反驳或削弱假设的统计证据 |
+| 发现 | 面向业务阅读的发现，包含证据强度和不确定性说明 |
+| 候选原因 | 基于确定性证据排序的 3 到 5 个可能解释 |
+| AI 叙事 | 基于结构化报告生成的自然语言总结 |
+| 交互式调查 | 后续问题、数据缺口、调查路径和可运行的 drill-down 结果 |
 
-## Investigation flow
+## 调查流程
 
 ```text
 CSV / Excel
@@ -60,49 +60,49 @@ LLM Narrative
 Interactive Investigation
 ```
 
-Every layer consumes outputs from previous layers. The system avoids letting LLMs invent analytical conclusions: deterministic services produce signals, evidence, confidence, and validation status; the LLM layer explains those results in natural language.
+每一层都消费上一层的输出。确定性服务负责生成信号、证据、置信度和验证状态；LLM 只负责把这些结构化结果解释成自然语言，不负责创造或修改分析结论。
 
-## MVP highlights
+## MVP 亮点
 
-### Question-aware investigation
+### 问题驱动调查
 
-Users can add an optional investigation question at upload time. The question influences sorting and presentation without filtering out unrelated evidence or allowing the LLM to change deterministic conclusions.
+用户可以在上传数据时输入一个可选调查问题。该问题会影响信号、发现和候选原因的排序与展示，但不会过滤掉无关证据，也不会让 LLM 改写确定性结论。
 
-### Semantic field roles
+### 字段语义角色
 
-The profiler identifies analysis roles such as `metric`, `dimension`, `time`, `entity`, and `identifier`. These roles help the pipeline avoid treating IDs as ordinary dimensions and guide trend, concentration, and drill-down analyses.
+Profiler 会识别 `metric`、`dimension`、`time`、`entity`、`identifier` 等分析角色。系统因此可以避免把 ID 当作普通维度，并更可靠地选择趋势分析、集中度分析和 drill-down 分析所需字段。
 
-### Cause candidate ranking
+### 候选原因排序
 
-The report ranks likely explanations based on evidence count, confidence, question relevance, data-quality limitations, and whether multiple signals point to the same explanation. Candidates are written as hypotheses, not guaranteed root causes.
+报告会根据证据数量、置信度、问题相关性、数据质量限制，以及多个信号是否指向同一解释来排序候选原因。候选原因被表述为需要继续验证的假设，而不是确定的根因。
 
-### Runnable follow-ups
+### 可运行 follow-up
 
-Some follow-up questions can now run additional deterministic analysis against the original uploaded dataset. Results are appended to the interactive investigation layer and do not overwrite the original report.
+部分后续调查问题可以基于原始上传数据继续运行确定性分析。新结果会追加到交互式调查层，不会覆盖原始报告。
 
-Supported drill-down analyses:
+当前支持的 drill-down 分析：
 
-| Signal family | Analysis type | What it checks |
+| 信号类型 | 分析类型 | 检查内容 |
 |---|---|---|
-| Outliers and skew | `tail_records` | Tail or outlier records and their contribution |
-| Increasing or decreasing trend | `trend_by_dimension` | Which dimension groups drive the trend |
-| High concentration | `top_category_vs_rest` | Top category contribution versus the rest |
-| High missing rate | `missingness_by_dimension` | Whether missingness is concentrated in specific groups |
-| High cardinality | `cardinality_distribution` | Value frequency distribution and coverage thresholds |
-| Low variance | `low_variance_distribution` | Coefficient of variation and dominant values |
+| 异常值与偏态 | `tail_records` | 尾部记录、异常记录及其贡献 |
+| 上升或下降趋势 | `trend_by_dimension` | 哪些维度分组推动了趋势 |
+| 高集中度 | `top_category_vs_rest` | 头部类别与其他类别的贡献对比 |
+| 高缺失率 | `missingness_by_dimension` | 缺失是否集中在特定分组 |
+| 高基数 | `cardinality_distribution` | 值频率分布与覆盖阈值 |
+| 低方差 | `low_variance_distribution` | 变异系数与主导值分布 |
 
-## Example
+## 示例
 
-The repository includes `examples/high_cardinality_test.csv`, a small dataset designed to trigger high-cardinality detection on `sku_group`.
+仓库中包含 `examples/high_cardinality_test.csv`，这是一个用于触发 `sku_group` 高基数字段检测的小型数据集。
 
-After uploading it with the question “这个字段唯一值是否过多，能否聚合？”, the pipeline detects:
+上传该文件并输入问题“这个字段唯一值是否过多，能否聚合？”后，pipeline 会检测到：
 
 ```text
 [SUPPORTED] sku_group 可能包含过多唯一值
 unique_ratio = 1.0
 ```
 
-Running the first follow-up question returns:
+运行第一个 follow-up 问题后，会返回：
 
 ```text
 analysis_type = cardinality_distribution
@@ -113,26 +113,26 @@ status = completed
 前 32 个值已覆盖 80% 的记录，可考虑将其余值归为「其他」。
 ```
 
-This demonstrates the complete MVP loop: upload data, ask a question, receive evidence-backed findings, then run a follow-up analysis.
+这个示例展示了完整的 MVP 闭环：上传数据，提出问题，获得证据支持的发现，然后继续运行后续分析。
 
-## Quick start
+## 快速开始
 
-### Run with Docker Compose
+### 使用 Docker Compose
 
 ```bash
 cp .env.example .env
 docker compose up -d
 ```
 
-The API will be available at:
+API 文档地址：
 
 ```text
 http://localhost:8000/docs
 ```
 
-### Run locally
+### 本地运行
 
-Use Python 3.11+ and PostgreSQL. The app reads configuration from `.env`.
+本地运行需要 Python 3.11+ 和 PostgreSQL。应用会从 `.env` 读取配置。
 
 ```bash
 pip install -r requirements.txt
@@ -140,7 +140,7 @@ alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
-For local development with a conda environment:
+如果使用本项目的 conda 开发环境：
 
 ```bash
 conda activate ai
@@ -148,7 +148,7 @@ alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
-### CLI demo
+### CLI Demo
 
 ```bash
 python examples/run_investigation.py --demo sales
@@ -156,11 +156,11 @@ python examples/run_investigation.py --demo operations
 python examples/run_investigation.py --demo churn
 ```
 
-See [examples/README.md](examples/README.md) for more demo details.
+更多示例说明见 [examples/README.md](examples/README.md)。
 
-## API usage
+## API 使用
 
-Upload a dataset:
+上传数据集：
 
 ```bash
 curl -X POST "http://localhost:8000/upload/" \
@@ -168,37 +168,37 @@ curl -X POST "http://localhost:8000/upload/" \
   -F "investigation_question=这个字段唯一值是否过多，能否聚合？"
 ```
 
-Fetch task result:
+获取任务结果：
 
 ```bash
 curl "http://localhost:8000/task/{task_id}"
 ```
 
-Run a follow-up drill-down:
+运行后续 drill-down 分析：
 
 ```bash
 curl -X POST \
   "http://localhost:8000/task/{task_id}/follow-ups/{question_index}/drilldown"
 ```
 
-The drill-down result is appended to:
+drill-down 结果会追加到：
 
 ```text
 result.interactive_investigation.drilldown_steps
 ```
 
-## Project structure
+## 项目结构
 
 ```text
 app/
-├── api/                 FastAPI endpoints
-├── core/                Settings and logging
-├── db/                  SQLAlchemy database setup
-├── models/              ORM models and enums
-├── prompts/             Versioned LLM prompt contracts
-├── schemas/             Pydantic data contracts
-└── services/            Investigation business logic
-    ├── evidence/        Evidence builders
+├── api/                 FastAPI 接口
+├── core/                配置与日志
+├── db/                  SQLAlchemy 数据库配置
+├── models/              ORM 模型与枚举
+├── prompts/             版本化 LLM prompt 契约
+├── schemas/             Pydantic 数据契约
+└── services/            调查分析业务逻辑
+    ├── evidence/        证据构建器
     ├── profiler.py
     ├── signal_detector.py
     ├── question_generator.py
@@ -211,59 +211,59 @@ app/
     └── pipeline.py
 
 frontend/
-├── src/api/             API client and shared types
-├── src/components/      UI components
-├── src/i18n/            Chinese and English translations
-├── src/pages/           Upload and investigation pages
-└── src/hooks/           Polling, theme, upload hooks
+├── src/api/             API client 与共享类型
+├── src/components/      UI 组件
+├── src/i18n/            中文与英文翻译
+├── src/pages/           上传页与调查结果页
+└── src/hooks/           轮询、主题、上传 hooks
 
-docs/                    Vision, architecture, decisions, roadmap
-examples/                Demo datasets and CLI examples
-tests/                   Backend test suite
+docs/                    愿景、架构、决策、路线图
+examples/                Demo 数据集与 CLI 示例
+tests/                   后端测试套件
 ```
 
-## Architecture principles
+## 架构原则
 
-- Evidence before conclusions: every finding must trace back to structured evidence.
-- Explainability: conclusions reference signals, methods, thresholds, sample sizes, and limitations.
-- Deterministic analysis before LLM presentation: LLMs explain findings, not produce findings.
-- Extension over modification: new detectors and builders should follow registry-style patterns where possible.
-- Schemas stay pure: business logic belongs in `app/services`.
-- Investigation quality comes before feature quantity.
+- 证据先于结论：每个发现都必须能追溯到结构化证据。
+- 可解释性：结论需要引用信号、方法、阈值、样本量和限制。
+- 确定性分析先于 LLM 表达：LLM 解释发现，不生成发现。
+- 优先扩展而非修改：新增 detector 或 builder 时优先采用 registry 风格。
+- Schema 保持纯数据结构：业务逻辑放在 `app/services`。
+- 调查质量优先于功能数量。
 
-## Tech stack
+## 技术栈
 
-| Layer | Tools |
+| 层级 | 技术 |
 |---|---|
-| Backend | Python 3.11+, FastAPI, Pandas, Pydantic |
-| Database | PostgreSQL, SQLAlchemy, Alembic |
-| LLM integration | Provider-agnostic protocol, mock fallback, OpenAI-compatible mode |
-| Frontend | React, TypeScript, Vite, i18n |
-| Testing | pytest |
-| Deployment | Docker Compose |
+| 后端 | Python 3.11+, FastAPI, Pandas, Pydantic |
+| 数据库 | PostgreSQL, SQLAlchemy, Alembic |
+| LLM 集成 | Provider-agnostic protocol, mock fallback, OpenAI-compatible mode |
+| 前端 | React, TypeScript, Vite, i18n |
+| 测试 | pytest |
+| 部署 | Docker Compose |
 
-## Tests
+## 测试
 
 ```bash
 python -m pytest tests/ -q
 ```
 
-Current backend coverage:
+当前后端测试结果：
 
 ```text
-209 passed, 1 skipped
+210 passed
 ```
 
-The test suite covers profiling, signal detection, evidence builders, hypothesis validation, report generation, narrative fallback, interactive investigation, and all six runnable drill-down analysis types.
+测试覆盖数据画像、信号检测、证据构建器、假设验证、报告生成、叙事 fallback、交互式调查，以及全部 6 类可运行 drill-down 分析。
 
-## Documentation
+## 文档
 
-- [Vision](docs/vision.md)
-- [Architecture](docs/architecture.md)
-- [Principles](docs/principles.md)
-- [Roadmap](docs/roadmap.md)
-- [Decisions](docs/decisions.md)
-- [MVP Plan](docs/mvp-plan.md)
+- [项目愿景](docs/vision.md)
+- [系统架构](docs/architecture.md)
+- [产品原则](docs/principles.md)
+- [开发路线图](docs/roadmap.md)
+- [架构决策](docs/decisions.md)
+- [MVP 计划](docs/mvp-plan.md)
 
 ## License
 
