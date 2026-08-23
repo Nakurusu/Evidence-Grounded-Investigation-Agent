@@ -172,7 +172,7 @@ MVP completion focuses on:
 
 ### Test Coverage
 
-209 tests, 23 fixtures, covering:
+210 tests, 23 fixtures, covering:
 - All 8 signal detectors
 - All 7 evidence builders
 - Hypothesis validation rules

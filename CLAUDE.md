@@ -193,17 +193,20 @@ When adding new functionality, prefer creating a new builder or generator rather
 
 Current roadmap phase:
 
-**Phase 7 – LLM Integration
+**Phase 8 – Interactive Investigation** (Completed)
 
 Goals:
 
-- Natural language summaries
-- Investigation narratives
-- Executive reports
+- Follow-up questions (drill-down, cross-pattern, alternative explanations)
+- Data gap identification
+- Guided investigation paths
+- Unresolved area tracking
 
 Outputs:
 
-- AI Investigation Report
+- Interactive Investigation Report
+
+MVP Completion Track is also completed (question-driven investigation, semantic field roles, cause candidate ranking, runnable follow-ups).
 
 ---
 
@@ -211,14 +214,11 @@ Outputs:
 
 The remaining roadmap is:
 
-Phase 7
-- LLM Integration
-
-Phase 8
-- Interactive Investigation
-
 Phase 9
 - Multi-Dataset Analysis
+
+Phase 10
+- Deployment & Operations
 
 Keep implementations compatible with future phases.
 

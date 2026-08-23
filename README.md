@@ -148,6 +148,25 @@ alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
+### 前端启动
+
+前端基于 React + TypeScript + Vite，默认运行在 `http://localhost:5173`，通过 Vite proxy 将 `/api` 请求转发到后端 `http://localhost:8000`。
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+生产构建：
+
+```bash
+cd frontend
+npm run build
+```
+
+构建产物输出到 `frontend/dist/`，可直接用静态服务器托管。
+
 ### CLI Demo
 
 ```bash

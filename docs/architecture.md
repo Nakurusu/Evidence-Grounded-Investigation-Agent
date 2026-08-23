@@ -71,7 +71,7 @@ flowchart TD
 - `HIGH_CARDINALITY` — text/categorical columns with >90% unique values
 - `OUTLIER_DETECTED` — numeric columns with IQR outliers
 - `INCREASING_TREND` / `DECREASING_TREND` — time-series direction
-- `HIGH_CONCENTRATION` — one category dominates (>70% share)
+- `HIGH_CONCENTRATION` — one category dominates (>50% share, >70% for high severity)
 - `RIGHT_SKEWED` / `LEFT_SKEWED` — mean/median asymmetry
 - `LOW_VARIANCE` — coefficient of variation <5%
 
@@ -169,4 +169,4 @@ Deterministic and generative outputs are independently testable and versionable.
 | `app/services/` | Business logic, analysis, generation |
 | `app/prompts/` | Versioned prompt contracts (input/output/traceability) |
 | `app/api/` | Request handling, orchestration |
-| `tests/` | 162 tests, 23 fixtures |
+| `tests/` | 210 tests, 23 fixtures |
