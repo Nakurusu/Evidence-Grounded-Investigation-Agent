@@ -1669,7 +1669,7 @@ function RelationCard({
       <div className="mb-2 flex items-center gap-2">
         {typeIcons[rel.type] ?? <Link2 className="h-4 w-4 text-muted" />}
         <span className="text-xs font-medium text-muted uppercase">
-          {rel.type}
+          {t.investigation.crossDataset.relationType[rel.type as keyof typeof t.investigation.crossDataset.relationType] ?? rel.type}
         </span>
         <ConfidenceBadge
           confidence={rel.confidence as HypothesisConfidence}

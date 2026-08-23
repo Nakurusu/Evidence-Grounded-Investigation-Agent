@@ -186,6 +186,12 @@ const zh: Translations = {
       sharedDimensions: "共享维度",
       relations: (count) => `关系 (${count})`,
       hypotheses: "跨数据集假设",
+      relationType: {
+        shared_dimension: "共享维度",
+        correlated_trend: "同向趋势",
+        opposite_trend: "反向趋势",
+        complementary_signal: "互补信号",
+      },
     },
     status: {
       supported: "已支持",

@@ -186,6 +186,12 @@ const en: Translations = {
       sharedDimensions: "Shared Dimensions",
       relations: (count) => `Relations (${count})`,
       hypotheses: "Cross-Dataset Hypotheses",
+      relationType: {
+        shared_dimension: "Shared Dimension",
+        correlated_trend: "Correlated Trend",
+        opposite_trend: "Opposite Trend",
+        complementary_signal: "Complementary Signal",
+      },
     },
     status: {
       supported: "Supported",

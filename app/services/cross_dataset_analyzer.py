@@ -85,14 +85,13 @@ class CrossDatasetAnalyzer:
                     CrossDatasetRelation(
                         type="shared_dimension",
                         description=(
-                            f"Both datasets share {len(shared)} dimension(s): "
-                            f"{dims}.  These can be used to cross-reference "
-                            f"findings between datasets."
+                            f"两个数据集共享 {len(shared)} 个维度："
+                            f"{dims}。可通过这些维度交叉验证各数据集中的发现。"
                         ),
-                        primary_context=f"Primary dataset has columns: {dims}",
+                        primary_context=f"主数据集包含字段：{dims}",
                         secondary_context=(
-                            f"Secondary dataset '{sec_filename}' "
-                            f"has columns: {dims}"
+                            f"辅助数据集 '{sec_filename}' "
+                            f"包含字段：{dims}"
                         ),
                         shared_columns=sorted(shared),
                         confidence="high",
@@ -165,20 +164,19 @@ class CrossDatasetAnalyzer:
         # Correlated: both increasing or both decreasing
         if has_primary_increase and has_sec_increase:
             ctx = (
-                f"shared dimensions: {', '.join(sorted(shared_dims))}"
-                if shared_dims else "no shared dimensions"
+                f"共享维度：{', '.join(sorted(shared_dims))}"
+                if shared_dims else "无共享维度"
             )
             relations.append(
                 CrossDatasetRelation(
                     type="correlated_trend",
                     description=(
-                        f"Both datasets show increasing trends.  "
-                        f"This suggests a shared growth driver or related "
-                        f"business processes ({ctx})."
+                        f"两个数据集均呈上升趋势。"
+                        f"这可能表明存在共同的成长驱动力或关联业务流程（{ctx}）。"
                     ),
-                    primary_context="Primary dataset has an increasing trend",
+                    primary_context="主数据集呈上升趋势",
                     secondary_context=(
-                        f"'{sec_filename}' also has an increasing trend"
+                        f"'{sec_filename}' 同样呈上升趋势"
                     ),
                     shared_columns=sorted(shared_dims),
                     confidence="medium",
@@ -187,20 +185,19 @@ class CrossDatasetAnalyzer:
 
         if has_primary_decrease and has_sec_decrease:
             ctx = (
-                f"shared dimensions: {', '.join(sorted(shared_dims))}"
-                if shared_dims else "no shared dimensions"
+                f"共享维度：{', '.join(sorted(shared_dims))}"
+                if shared_dims else "无共享维度"
             )
             relations.append(
                 CrossDatasetRelation(
                     type="correlated_trend",
                     description=(
-                        f"Both datasets show decreasing trends.  "
-                        f"This may indicate a shared external pressure or "
-                        f"systemic issue ({ctx})."
+                        f"两个数据集均呈下降趋势。"
+                        f"这可能表明存在共同的外部压力或系统性问题（{ctx}）。"
                     ),
-                    primary_context="Primary dataset has a decreasing trend",
+                    primary_context="主数据集呈下降趋势",
                     secondary_context=(
-                        f"'{sec_filename}' also has a decreasing trend"
+                        f"'{sec_filename}' 同样呈下降趋势"
                     ),
                     shared_columns=sorted(shared_dims),
                     confidence="medium",
@@ -213,14 +210,13 @@ class CrossDatasetAnalyzer:
                 CrossDatasetRelation(
                     type="opposite_trend",
                     description=(
-                        "Primary dataset is increasing while secondary "
-                        f"'{sec_filename}' is decreasing.  This divergence "
-                        "may indicate a substitution effect or that the "
-                        "datasets describe independent processes."
+                        f"主数据集呈上升趋势，而辅助数据集 '{sec_filename}' "
+                        f"呈下降趋势。这种分歧可能表明存在替代效应，"
+                        f"或两个数据集描述的是独立过程。"
                     ),
-                    primary_context="Primary dataset has an increasing trend",
+                    primary_context="主数据集呈上升趋势",
                     secondary_context=(
-                        f"'{sec_filename}' has a decreasing trend"
+                        f"'{sec_filename}' 呈下降趋势"
                     ),
                     shared_columns=sorted(shared_dims),
                     confidence="medium",
@@ -232,14 +228,13 @@ class CrossDatasetAnalyzer:
                 CrossDatasetRelation(
                     type="opposite_trend",
                     description=(
-                        "Primary dataset is decreasing while secondary "
-                        f"'{sec_filename}' is increasing.  This may indicate "
-                        "a shift — resources or activity moving from the "
-                        "primary domain to the secondary domain."
+                        f"主数据集呈下降趋势，而辅助数据集 '{sec_filename}' "
+                        f"呈上升趋势。这可能意味着资源或活动正从主数据集领域"
+                        f"向辅助数据集领域转移。"
                     ),
-                    primary_context="Primary dataset has a decreasing trend",
+                    primary_context="主数据集呈下降趋势",
                     secondary_context=(
-                        f"'{sec_filename}' has an increasing trend"
+                        f"'{sec_filename}' 呈上升趋势"
                     ),
                     shared_columns=sorted(shared_dims),
                     confidence="medium",
@@ -270,28 +265,26 @@ class CrossDatasetAnalyzer:
 
         if primary_has_conc and sec_has_trend:
             direction = (
-                "increasing" if SignalType.INCREASING_TREND in secondary_signals
-                else "decreasing"
+                "上升" if SignalType.INCREASING_TREND in secondary_signals
+                else "下降"
             )
             dim_ctx = (
-                f"Shared dimensions ({', '.join(sorted(shared_dims))}) "
-                f"suggest these patterns may be connected."
+                f"共享维度（{', '.join(sorted(shared_dims))}）"
+                f"表明这些模式可能存在关联。"
                 if shared_dims
-                else "No shared dimensions were found — the connection "
-                     "may be indirect."
+                else "未发现共享维度——两者之间的关联可能是间接的。"
             )
             relations.append(
                 CrossDatasetRelation(
                     type="complementary_signal",
                     description=(
-                        f"Concentration risk in the primary dataset combined "
-                        f"with a {direction} trend in '{sec_filename}' "
-                        f"suggests the concentrated entities may be affected "
-                        f"by the secondary dataset's trend.  {dim_ctx}"
+                        f"主数据集的集中度风险与辅助数据集 '{sec_filename}' "
+                        f"的{direction}趋势相结合，表明集中的对象可能"
+                        f"受到辅助数据集趋势的影响。{dim_ctx}"
                     ),
-                    primary_context="Primary dataset has high concentration",
+                    primary_context="主数据集存在高集中度",
                     secondary_context=(
-                        f"'{sec_filename}' has a {direction} trend"
+                        f"'{sec_filename}' 呈{direction}趋势"
                     ),
                     shared_columns=sorted(shared_dims),
                     confidence="high" if shared_dims else "medium",
@@ -316,35 +309,32 @@ class CrossDatasetAnalyzer:
             if r.type == "shared_dimension" and r.shared_columns:
                 cols = ", ".join(r.shared_columns)
                 hypotheses.append(
-                    f"The primary dataset and '{sec_filename}' share "
-                    f"dimensions ({cols}).  Cross-referencing by these "
-                    f"dimensions may reveal causal relationships between "
-                    f"the patterns observed in each dataset."
+                    f"主数据集与 '{sec_filename}' 共享维度（{cols}）。"
+                    f"通过这些维度交叉比对，可能揭示各数据集中"
+                    f"所观察到的模式之间的因果关系。"
                 )
 
             if r.type == "correlated_trend":
                 hypotheses.append(
-                    f"The aligned trends between the primary dataset and "
-                    f"'{sec_filename}' suggest a common underlying driver.  "
-                    f"Investigate whether the same external factor (market "
-                    f"conditions, seasonality, policy change) explains both trends."
+                    f"主数据集与 '{sec_filename}' 的趋势方向一致，"
+                    f"可能存在共同的底层驱动因素。"
+                    f"建议调查是否有同一外部因素（市场环境、季节性、政策变化）"
+                    f"同时解释两个趋势。"
                 )
 
             if r.type == "opposite_trend":
                 hypotheses.append(
-                    f"The opposing trends between the primary dataset and "
-                    f"'{sec_filename}' may indicate a causal relationship "
-                    f"or resource shift.  Investigate whether activity "
-                    f"moving from one domain to the other explains the "
-                    f"divergence."
+                    f"主数据集与 '{sec_filename}' 的趋势方向相反，"
+                    f"可能存在因果关系或资源转移。"
+                    f"建议调查活动从一个领域向另一个领域的转移"
+                    f"是否解释了这种分歧。"
                 )
 
             if r.type == "complementary_signal":
                 hypotheses.append(
-                    f"Concentration risk in the primary dataset may be "
-                    f"amplified or mitigated by the trend in '{sec_filename}'.  "
-                    f"Segment the concentrated entities by the secondary "
-                    f"dataset's dimension to understand the interaction."
+                    f"主数据集的集中度风险可能被 '{sec_filename}' 的趋势"
+                    f"放大或缓解。建议按辅助数据集的维度对集中对象进行拆分，"
+                    f"以理解两者之间的交互作用。"
                 )
 
         return hypotheses
