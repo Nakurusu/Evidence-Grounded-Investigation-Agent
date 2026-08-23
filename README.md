@@ -16,7 +16,7 @@ MVP 主线已经完成。系统同时支持探索驱动分析和问题驱动调�
 | 候选原因排序 | 已完成 |
 | 可运行 follow-up 分析 | 已完成 |
 | LLM 叙事层与 mock fallback | 已完成 |
-| 多数据集调查图谱 | 计划中 |
+| 多数据集调查图谱 | 已完成 |
 
 ## 系统能做什么
 
@@ -93,27 +93,58 @@ Profiler 会识别 `metric`、`dimension`、`time`、`entity`、`identifier` 等
 
 ## 示例
 
-仓库中包含 `examples/high_cardinality_test.csv`，这是一个用于触发 `sku_group` 高基数字段检测的小型数据集。
+仓库 `examples/` 目录下包含多组演示数据集，覆盖单数据集调查和多数据集跨分析两种场景。
 
-上传该文件并输入问题“这个字段唯一值是否过多，能否聚合？”后，pipeline 会检测到：
+### 场景一：单数据集调查 + drill-down
 
-```text
-[SUPPORTED] sku_group 可能包含过多唯一值
-unique_ratio = 1.0
+使用 `examples/demo_retail_revenue.csv`（60 行，5 个区域 × 12 个月的零售收入数据）。
+
+```bash
+curl -X POST "http://localhost:8000/upload/" \
+  -F "file=@examples/demo_retail_revenue.csv" \
+  -F "investigation_question=为什么收入下降"
 ```
 
-运行第一个 follow-up 问题后，会返回：
+该数据集会触发以下信号：
 
-```text
-analysis_type = cardinality_distribution
-status = completed
+| 信号 | 触发原因 |
+|---|---|
+| `DECREASING_TREND` | revenue 从 620 降至 160（-74%） |
+| `HIGH_CONCENTRATION` | East 区域占 revenue 的 50.5% |
+| `HIGH_MISSING_RATE` | satisfaction_score 在 North 区域 9/12 个月缺失 |
 
-字段 sku_group 共有 40 个唯一值。
-前 10 个值覆盖了 40 条记录中的 25.0%。
-前 32 个值已覆盖 80% 的记录，可考虑将其余值归为「其他」。
+报告中会生成 2-3 个候选原因，每个都带证据和限制说明。点击 follow-up 的"运行分析"按钮可以执行 drill-down，例如按 `region` 拆解趋势，确认 East 是下降的主要驱动因素。
+
+### 场景二：多数据集跨分析
+
+在主数据集基础上添加 `examples/demo_customer_complaints.csv`（60 行，共享 `date` 和 `region` 维度）。
+
+```bash
+curl -X POST "http://localhost:8000/upload/investigate/" \
+  -F "primary_file=@examples/demo_retail_revenue.csv" \
+  -F "secondary_files=@examples/demo_customer_complaints.csv" \
+  -F "investigation_question=为什么收入下降"
 ```
 
-这个示例展示了完整的 MVP 闭环：上传数据，提出问题，获得证据支持的发现，然后继续运行后续分析。
+跨数据集分析会检测到：
+
+| 关系类型 | 说明 |
+|---|---|
+| `shared_dimension` | 两个数据集共享 `date`、`region` 两个维度 |
+| `opposite_trend` | revenue 下降 vs complaint_count 上升（+487%） |
+| `complementary_signal` | East 的集中度风险 + 投诉趋势上升，可能相互关联 |
+
+辅助数据集为"收入下降"提供了新的证据维度：投诉激增可能是收入下降的关联因素。
+
+### 其他数据集
+
+| 文件 | 场景 | 说明 |
+|---|---|---|
+| `demo_sales.csv` | 多区域销售 | 异常值、右偏、集中度、下降趋势 |
+| `demo_churn.csv` | 订阅流失 | 缺失值、套餐集中度、消费下降 |
+| `demo_operations.csv` | 传感器监控 | 低方差、温度异常值、状态集中度 |
+
+更多说明见 [examples/README.md](examples/README.md)。
 
 ## 快速开始
 
@@ -179,12 +210,21 @@ python examples/run_investigation.py --demo churn
 
 ## API 使用
 
-上传数据集：
+上传单个数据集：
 
 ```bash
 curl -X POST "http://localhost:8000/upload/" \
-  -F "file=@examples/high_cardinality_test.csv" \
-  -F "investigation_question=这个字段唯一值是否过多，能否聚合？"
+  -F "file=@examples/demo_retail_revenue.csv" \
+  -F "investigation_question=为什么收入下降"
+```
+
+上传主数据集 + 辅助数据集（跨数据集分析）：
+
+```bash
+curl -X POST "http://localhost:8000/upload/investigate/" \
+  -F "primary_file=@examples/demo_retail_revenue.csv" \
+  -F "secondary_files=@examples/demo_customer_complaints.csv" \
+  -F "investigation_question=为什么收入下降"
 ```
 
 获取任务结果：
@@ -204,6 +244,12 @@ drill-down 结果会追加到：
 
 ```text
 result.interactive_investigation.drilldown_steps
+```
+
+跨数据集分析结果在：
+
+```text
+result.investigation_graph
 ```
 
 ## 项目结构
@@ -273,7 +319,7 @@ python -m pytest tests/ -q
 210 passed
 ```
 
-测试覆盖数据画像、信号检测、证据构建器、假设验证、报告生成、叙事 fallback、交互式调查，以及全部 6 类可运行 drill-down 分析。
+测试覆盖数据画像、信号检测、证据构建器、假设验证、报告生成、叙事 fallback、交互式调查、全部 6 类可运行 drill-down 分析，以及跨数据集分析。
 
 ## 文档
 
