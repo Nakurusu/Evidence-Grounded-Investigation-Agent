@@ -157,6 +157,7 @@ const zh: Translations = {
       runDrilldown: "运行分析",
       running: "分析中...",
       runFailed: "后续分析运行失败。",
+      analyzed: "已分析",
       drilldownResults: "后续分析结果",
       drilldownStatus: {
         completed: "已完成",

@@ -157,6 +157,7 @@ const en: Translations = {
       runDrilldown: "Run Analysis",
       running: "Running...",
       runFailed: "Follow-up analysis failed.",
+      analyzed: "Analyzed",
       drilldownResults: "Follow-up Analysis Results",
       drilldownStatus: {
         completed: "Completed",

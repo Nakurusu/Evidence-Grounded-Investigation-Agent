@@ -1271,6 +1271,9 @@ function InteractiveTab({
     }
   };
 
+  const getStepForQuestion = (questionText: string) =>
+    drilldownSteps.find((s) => s.question === questionText);
+
   return (
     <div className="mx-auto max-w-3xl space-y-12">
       {/* Follow-up Questions */}
@@ -1279,79 +1282,185 @@ function InteractiveTab({
           {t.investigation.interactive.followUp}
         </h2>
         <div className="space-y-3">
-          {questions.map((q, i) => (
-            <div
-              key={i}
-              className="rounded-lg border border-border bg-surface p-4"
-            >
-              <div className="mb-2 flex flex-wrap items-center gap-2">
-                <span
-                  className={cn(
-                    "inline-flex rounded-full px-2 py-0.5 text-xs font-medium",
-                    q.priority === "high"
-                      ? "bg-danger-muted text-danger"
-                      : q.priority === "medium"
-                        ? "bg-warning-muted text-warning"
-                        : "bg-surface-elevated text-muted-foreground",
-                  )}
-                >
-                  {q.priority.toUpperCase()}
-                </span>
-                <span className="text-xs text-muted">
-                  {t.investigation.interactive.questionCategory[
-                    q.category as keyof typeof t.investigation.interactive.questionCategory
-                  ] ?? q.category}
-                </span>
+          {questions.map((q, i) => {
+            const existingStep = getStepForQuestion(q.question);
+            const isAnalyzed = !!existingStep;
+            const isRunning = runningQuestionIndex === i;
+
+            return (
+              <div
+                key={i}
+                className="rounded-lg border border-border bg-surface p-4"
+              >
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <span
+                    className={cn(
+                      "inline-flex rounded-full px-2 py-0.5 text-xs font-medium",
+                      q.priority === "high"
+                        ? "bg-danger-muted text-danger"
+                        : q.priority === "medium"
+                          ? "bg-warning-muted text-warning"
+                          : "bg-surface-elevated text-muted-foreground",
+                    )}
+                  >
+                    {q.priority.toUpperCase()}
+                  </span>
+                  <span className="text-xs text-muted">
+                    {t.investigation.interactive.questionCategory[
+                      q.category as keyof typeof t.investigation.interactive.questionCategory
+                    ] ?? q.category}
+                  </span>
+                </div>
+                <p className="mb-2 text-sm text-foreground">{q.question}</p>
+
+                {q.category === "drill_down" && (
+                  <button
+                    type="button"
+                    disabled={!taskId || isRunning || isAnalyzed}
+                    onClick={() => handleRunDrilldown(i)}
+                    className={cn(
+                      "mb-3 inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors",
+                      isAnalyzed
+                        ? "border-success text-success"
+                        : "border-accent text-accent hover:bg-accent-muted",
+                      "disabled:cursor-not-allowed disabled:opacity-60",
+                    )}
+                  >
+                    {isRunning
+                      ? t.investigation.interactive.running
+                      : isAnalyzed
+                        ? t.investigation.interactive.analyzed
+                        : t.investigation.interactive.runDrilldown}
+                    <ArrowRight className="h-3 w-3" />
+                  </button>
+                )}
+
+                {/* Inline drill-down result */}
+                {existingStep && (
+                  <div className="mb-3 rounded-md border border-border bg-surface-elevated p-3">
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                      <span
+                        className={cn(
+                          "inline-flex rounded-full px-2 py-0.5 text-xs font-medium",
+                          existingStep.status === "completed"
+                            ? "bg-success-muted text-success"
+                            : "bg-warning-muted text-warning",
+                        )}
+                      >
+                        {t.investigation.interactive.drilldownStatus[
+                          existingStep.status as keyof typeof t.investigation.interactive.drilldownStatus
+                        ] ?? existingStep.status}
+                      </span>
+                      <span className="text-xs text-muted">
+                        {t.investigation.interactive.drilldownAnalysisType[
+                          existingStep.analysis_type as keyof typeof t.investigation.interactive.drilldownAnalysisType
+                        ] ?? existingStep.analysis_type}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{existingStep.summary}</p>
+
+                    {existingStep.related_columns.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {existingStep.related_columns.map((column) => (
+                          <span
+                            key={column}
+                            className="inline-flex rounded bg-accent-muted px-1.5 py-0.5 text-xs text-accent"
+                          >
+                            {column}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {existingStep.evidence.length > 0 && (
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                        {existingStep.evidence.map((item) => (
+                          <div
+                            key={item.label}
+                            className="rounded-md bg-surface p-3"
+                          >
+                            <p className="text-xs text-muted">{item.label}</p>
+                            <p className="mt-1 text-sm font-semibold text-foreground">
+                              {String(item.value ?? "—")}
+                            </p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {item.description}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {existingStep.sample_records.length > 0 && (
+                      <div className="mt-3 overflow-x-auto rounded-md border border-border">
+                        <table className="min-w-full text-left text-xs">
+                          <thead className="bg-surface text-muted">
+                            <tr>
+                              {Object.keys(existingStep.sample_records[0]).map((column) => (
+                                <th key={column} className="px-3 py-2 font-medium">
+                                  {column}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {existingStep.sample_records.slice(0, 5).map((record, rowIndex) => (
+                              <tr key={rowIndex} className="border-t border-border">
+                                {Object.keys(existingStep.sample_records[0]).map((column) => (
+                                  <td key={column} className="px-3 py-2 text-muted-foreground">
+                                    {String(record[column] ?? "—")}
+                                  </td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    {existingStep.limitations.length > 0 && (
+                      <div className="mt-3 space-y-1">
+                        {existingStep.limitations.map((limitation) => (
+                          <p key={limitation} className="text-xs text-muted">
+                            {limitation}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Related findings */}
+                {q.related_finding_titles.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <Link2 className="h-3 w-3 text-muted" />
+                    {q.related_finding_titles.map((title, j) => (
+                      <span
+                        key={j}
+                        className="inline-flex rounded bg-accent-muted px-1.5 py-0.5 text-xs text-accent"
+                      >
+                        {title}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Required data */}
+                {q.required_data.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {q.required_data.map((d, j) => (
+                      <span
+                        key={j}
+                        className="inline-flex rounded bg-surface-elevated px-1.5 py-0.5 text-xs text-muted"
+                      >
+                        {d}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
-              <p className="mb-2 text-sm text-foreground">{q.question}</p>
-
-              {q.category === "drill_down" && (
-                <button
-                  type="button"
-                  disabled={!taskId || runningQuestionIndex === i}
-                  onClick={() => handleRunDrilldown(i)}
-                  className={cn(
-                    "mb-3 inline-flex items-center gap-1.5 rounded-md border border-accent px-2.5 py-1.5 text-xs font-medium text-accent transition-colors",
-                    "hover:bg-accent-muted disabled:cursor-not-allowed disabled:opacity-60",
-                  )}
-                >
-                  {runningQuestionIndex === i
-                    ? t.investigation.interactive.running
-                    : t.investigation.interactive.runDrilldown}
-                  <ArrowRight className="h-3 w-3" />
-                </button>
-              )}
-
-              {/* Related findings */}
-              {q.related_finding_titles.length > 0 && (
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <Link2 className="h-3 w-3 text-muted" />
-                  {q.related_finding_titles.map((title, j) => (
-                    <span
-                      key={j}
-                      className="inline-flex rounded bg-accent-muted px-1.5 py-0.5 text-xs text-accent"
-                    >
-                      {title}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {/* Required data */}
-              {q.required_data.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {q.required_data.map((d, j) => (
-                    <span
-                      key={j}
-                      className="inline-flex rounded bg-surface-elevated px-1.5 py-0.5 text-xs text-muted"
-                    >
-                      {d}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
         {drilldownError && (
           <p className="mt-3 rounded-md bg-danger-muted p-3 text-sm text-danger">
@@ -1359,116 +1468,6 @@ function InteractiveTab({
           </p>
         )}
       </section>
-
-      {/* Drill-down Results */}
-      {drilldownSteps.length > 0 && (
-        <section>
-          <h2 className="mb-4 text-lg font-semibold text-foreground">
-            {t.investigation.interactive.drilldownResults}
-          </h2>
-          <div className="space-y-4">
-            {drilldownSteps.map((step) => (
-              <div
-                key={step.step_id}
-                className="rounded-lg border border-border bg-surface p-4"
-              >
-                <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <span
-                    className={cn(
-                      "inline-flex rounded-full px-2 py-0.5 text-xs font-medium",
-                      step.status === "completed"
-                        ? "bg-success-muted text-success"
-                        : "bg-warning-muted text-warning",
-                    )}
-                  >
-                    {t.investigation.interactive.drilldownStatus[
-                      step.status as keyof typeof t.investigation.interactive.drilldownStatus
-                    ] ?? step.status}
-                  </span>
-                  <span className="text-xs text-muted">
-                    {t.investigation.interactive.drilldownAnalysisType[
-                      step.analysis_type as keyof typeof t.investigation.interactive.drilldownAnalysisType
-                    ] ?? step.analysis_type}
-                  </span>
-                </div>
-                <p className="mb-2 text-sm font-medium text-foreground">
-                  {step.question}
-                </p>
-                <p className="text-sm text-muted-foreground">{step.summary}</p>
-
-                {step.related_columns.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-1">
-                    {step.related_columns.map((column) => (
-                      <span
-                        key={column}
-                        className="inline-flex rounded bg-accent-muted px-1.5 py-0.5 text-xs text-accent"
-                      >
-                        {column}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {step.evidence.length > 0 && (
-                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                    {step.evidence.map((item) => (
-                      <div
-                        key={item.label}
-                        className="rounded-md bg-surface-elevated p-3"
-                      >
-                        <p className="text-xs text-muted">{item.label}</p>
-                        <p className="mt-1 text-sm font-semibold text-foreground">
-                          {String(item.value ?? "—")}
-                        </p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {item.description}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {step.sample_records.length > 0 && (
-                  <div className="mt-4 overflow-x-auto rounded-md border border-border">
-                    <table className="min-w-full text-left text-xs">
-                      <thead className="bg-surface-elevated text-muted">
-                        <tr>
-                          {Object.keys(step.sample_records[0]).map((column) => (
-                            <th key={column} className="px-3 py-2 font-medium">
-                              {column}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {step.sample_records.slice(0, 5).map((record, rowIndex) => (
-                          <tr key={rowIndex} className="border-t border-border">
-                            {Object.keys(step.sample_records[0]).map((column) => (
-                              <td key={column} className="px-3 py-2 text-muted-foreground">
-                                {String(record[column] ?? "—")}
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-
-                {step.limitations.length > 0 && (
-                  <div className="mt-3 space-y-1">
-                    {step.limitations.map((limitation) => (
-                      <p key={limitation} className="text-xs text-muted">
-                        {limitation}
-                      </p>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
 
       {/* Unresolved Areas */}
       {unresolved.length > 0 && (
