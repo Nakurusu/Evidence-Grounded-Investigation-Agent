@@ -35,7 +35,7 @@
 - Concentration analysis
 - Distribution analysis (skew, variance)
 
-8 signal types total.
+9 signal types total.
 
 **Outputs**: Signal Report
 
@@ -136,10 +136,12 @@ MVP completion focuses on:
 - Root-cause exploration
 - Relationship discovery
 - Investigation graph
+- Shared dimension detection
+- `CrossDatasetAnalyzer` with primary + secondary dataset support
 
 **Outputs**: Investigation Graph
 
-**Status**: Planned
+**Status**: In Progress (core analyzer implemented, pipeline integration complete, further refinement planned)
 
 ---
 
@@ -167,17 +169,20 @@ MVP completion focuses on:
 | Phase 7 – LLM Integration | ✅ |
 | Phase 8 – Interactive Investigation | ✅ |
 | MVP Completion Track | ✅ |
-| Phase 9 – Multi-Dataset Analysis | ⏳ |
+| Phase 9 – Multi-Dataset Analysis | 🔧 |
 | Phase 10 – Deployment & Operations | ⏳ |
 
 ### Test Coverage
 
-210 tests, 23 fixtures, covering:
-- All 8 signal detectors
+206 tests, 22 fixtures, covering:
+- All 9 signal types across 6 detection groups
 - All 7 evidence builders
 - Hypothesis validation rules
 - Report generation templates
+- Cause candidate ranking
 - Narrative mock generator
+- LLM narrative generator
 - Interactive investigator
 - Runnable drill-down analyses (6 types)
+- Cross-dataset analyzer
 - Full pipeline integration

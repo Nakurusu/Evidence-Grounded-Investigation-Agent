@@ -399,7 +399,7 @@ The current architecture (v1.0) has the following division:
 - **Deterministic**: profiling, signals, questions, hypotheses, evidence, validation, report findings (template-driven)
 - **LLM Presentation Layer**: Narrative (executive summary, key findings, evidence summary, business impact, recommendations)
 
-The report findings in `report_generator.py` currently use ~929 lines of Chinese templates to generate observation, analysis, business_impact, and recommendation text for each finding. This creates overlap with the LLM Narrative, which covers the same content but in a synthesized, data-aware form.
+The report findings in `report_generator.py` (391 lines) and `report_templates.py` (748 lines) use Chinese templates to generate observation, analysis, business_impact, and recommendation text for each finding. This creates overlap with the LLM Narrative, which covers the same content but in a synthesized, data-aware form.
 
 Looking ahead, more presentation forms are expected: executive briefs, interactive follow-up questions, data gap analysis, dashboard summaries, conversational interfaces. Each should consume the same structured data rather than duplicating logic.
 
@@ -440,8 +440,8 @@ InvestigationReport (pure structured data: signals, evidence, stats)
 
 ## Consequences
 
-- `report_generator.py` templates (~929 lines) remain in v1.0 but are marked for future decommissioning.
-- `interactive_investigator.py` templates (~576 lines) remain in v1.0 but are the first candidate for LLM replacement.
+- `report_generator.py` (391 lines) and `report_templates.py` (748 lines) remain in v1.0 but are marked for future decommissioning.
+- `interactive_investigator.py` (642 lines) remains in v1.0 but is the first candidate for LLM replacement.
 - New presentation forms (Executive Brief, etc.) should be LLM-native from the start.
 - The `InvestigationReport` schema may need to grow richer structured fields (e.g., per-finding evidence summaries, segment breakdowns) to give LLMs enough data to generate high-quality output without templates.
 
