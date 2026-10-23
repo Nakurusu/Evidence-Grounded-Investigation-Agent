@@ -1,4 +1,4 @@
-"""Generate demo datasets for Investigative Data Analyst showcase.
+"""Generate demo datasets for Evidence-Grounded Investigation Agent showcase.
 
 Primary: retail revenue — triggers decreasing trend, high concentration, missing rate
 Secondary: customer complaints — triggers increasing trend (opposite to revenue)

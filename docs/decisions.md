@@ -1,6 +1,6 @@
 # Architecture Decisions
 
-This document records important architectural and product decisions made during the development of Investigative Data Analyst.
+This document records important architectural and product decisions made during the development of Evidence-Grounded Investigation Agent.
 
 The purpose of this document is to capture **why** decisions were made, rather than **what** was implemented.
 
@@ -30,7 +30,7 @@ The goal of this project is different.
 
 ## Decision
 
-Investigative Data Analyst is designed as an investigation engine rather than an AutoEDA tool.
+Evidence-Grounded Investigation Agent is designed as an investigation engine rather than an AutoEDA tool.
 
 The system should guide users through discovering, validating, and explaining business problems.
 

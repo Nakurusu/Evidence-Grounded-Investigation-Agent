@@ -2,15 +2,15 @@ import type { Translations } from "./translations";
 
 const zh: Translations = {
   common: {
-    appName: "Investigative Analyst",
+    appName: "Evidence-Grounded Agent",
     languageLabel: "语言",
     themeLabel: "主题",
   },
 
   home: {
-    heading: "Investigative Data Analyst",
+    heading: "Evidence-Grounded Investigation Agent",
     subtitle:
-      "上传 CSV 文件，获取 AI 驱动的调查报告——包含信号检测、证据验证、假设检验和可执行的后续步骤。这不是仪表盘，这是一位分析师。",
+      "上传 CSV 文件，获取 AI 驱动的调查报告——包含信号检测、证据验证、假设检验和可执行的后续步骤。这不是仪表盘，这是一个调查者。",
     cta: "开始调查",
     features: {
       signals: {

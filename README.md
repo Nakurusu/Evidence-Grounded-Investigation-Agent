@@ -1,6 +1,6 @@
-# Investigative Data Analyst
+# Evidence-Grounded Investigation Agent
 
-Investigative Data Analyst 是一个面向结构化数据的 AI 调查分析引擎。它可以把 CSV 或 Excel 数据逐步转化为数据画像、异常信号、调查问题、假设、证据、候选原因、自然语言总结和可继续运行的后续分析。
+Evidence-Grounded Investigation Agent 是一个面向结构化数据的 AI 调查分析引擎。它可以把 CSV 或 Excel 数据逐步转化为数据画像、异常信号、调查问题、假设、证据、候选原因、自然语言总结和可继续运行的后续分析。
 
 项目重点是“调查”而不是单纯“报表”。系统不会只给出描述性统计或图表，而是帮助用户从原始数据出发，逐步缩小业务问题的可能解释范围，并说明每个结论背后的证据、置信度和限制。
 

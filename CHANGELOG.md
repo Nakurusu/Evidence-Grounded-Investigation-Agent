@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-10-23
+
+### Changed
+
+- Project renamed: **Investigative Data Analyst** → **Evidence-Grounded Investigation Agent**.
+- Repository renamed to `Nakurusu/Evidence-Grounded-Investigation-Agent`. GitHub keeps a permanent redirect from the old URL, so existing links still resolve.
+- Updated the name in `README.md`, `CLAUDE.md`, `docs/decisions.md`, `frontend/README.md`, the frontend `<title>` and i18n `appName` / `home.heading` strings, and the CLI example header.
+- Frontend header short label `IDA` → `EGIA`; the mobile abbreviation now tracks the new name.
+
+### Notes
+
+- Prose keeps the adjective "investigative" where it describes behaviour rather than the product (`docs/vision.md`, `CLAUDE.md`): an *investigative* question, an *investigative* partner. Only the product name changed.
+- The home-page subtitle punchline moved from "Not a dashboard. An analyst." to "Not a dashboard. An investigator." so it no longer positions the project as an analyst role.
+- No code, pipeline, schema or test behaviour changed.
+
 ## 2026-08-05
 
 ### Fixed

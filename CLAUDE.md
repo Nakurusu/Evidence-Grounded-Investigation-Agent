@@ -1,10 +1,10 @@
 # CLAUDE.md
 
-# Investigative Data Analyst
+# Evidence-Grounded Investigation Agent
 
 ## Overview
 
-Investigative Data Analyst is an AI-powered investigation engine for structured datasets.
+Evidence-Grounded Investigation Agent is an AI-powered investigation engine for structured datasets.
 
 The goal is **not** to build another AutoEDA tool, BI dashboard, or visualization platform.
 

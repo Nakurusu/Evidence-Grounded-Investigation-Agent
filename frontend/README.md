@@ -1,6 +1,6 @@
-# Investigative Data Analyst 前端
+# Evidence-Grounded Investigation Agent 前端
 
-本目录是 Investigative Data Analyst 的前端界面，提供数据上传、调查进度展示、结构化报告查看和交互式 drill-down 分析功能。
+本目录是 Evidence-Grounded Investigation Agent 的前端界面，提供数据上传、调查进度展示、结构化报告查看和交互式 drill-down 分析功能。
 
 ## 技术栈
 

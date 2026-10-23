@@ -13,8 +13,8 @@ export function Header() {
           className="flex items-center gap-2 text-sm font-semibold text-foreground no-underline transition-opacity hover:opacity-80"
         >
           <Sparkles className="h-4 w-4 shrink-0 text-accent" />
-          <span className="hidden sm:inline">Investigative Analyst</span>
-          <span className="sm:hidden">IDA</span>
+          <span className="hidden sm:inline">Evidence-Grounded Agent</span>
+          <span className="sm:hidden">EGIA</span>
         </Link>
 
         <div className="flex items-center gap-2">

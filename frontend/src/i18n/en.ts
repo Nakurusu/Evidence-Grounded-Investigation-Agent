@@ -2,15 +2,15 @@ import type { Translations } from "./translations";
 
 const en: Translations = {
   common: {
-    appName: "Investigative Analyst",
+    appName: "Evidence-Grounded Agent",
     languageLabel: "Language",
     themeLabel: "Theme",
   },
 
   home: {
-    heading: "Investigative Data Analyst",
+    heading: "Evidence-Grounded Investigation Agent",
     subtitle:
-      "Drop in a CSV. Get back an AI-powered investigation report — with signals, evidence, hypotheses, and actionable next steps. Not a dashboard. An analyst.",
+      "Drop in a CSV. Get back an AI-powered investigation report — with signals, evidence, hypotheses, and actionable next steps. Not a dashboard. An investigator.",
     cta: "Start an investigation",
     features: {
       signals: {

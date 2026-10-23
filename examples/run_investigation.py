@@ -95,7 +95,7 @@ def print_section(title: str):
 
 
 def run(file_path: str):
-    print_header("INVESTIGATIVE DATA ANALYST — FULL PIPELINE")
+    print_header("EVIDENCE-GROUNDED INVESTIGATION AGENT — FULL PIPELINE")
     print(f"  Source: {file_path}")
 
     # ── Parse & Validate ──────────────────────────────────────────────

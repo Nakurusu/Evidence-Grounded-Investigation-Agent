@@ -1,4 +1,4 @@
-"""Shared test fixtures for the investigative data analyst test suite.
+"""Shared test fixtures for the evidence-grounded investigation agent test suite.
 
 Each fixture constructs a small pandas DataFrame designed to trigger a
 specific signal type or pipeline behavior.  This keeps individual test
